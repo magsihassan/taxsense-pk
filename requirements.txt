@@ -5,9 +5,10 @@ langchain-community
 langchain-groq
 langchain-huggingface
 langchain-pinecone
-pinecone-client
+pinecone
 pypdf
 sentence-transformers
 python-dotenv
 langsmith
 ipykernel
+tqdm
