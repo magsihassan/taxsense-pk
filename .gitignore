@@ -1,0 +1,29 @@
+# Environment
+.venv/
+venv/
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+build/
+dist/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data (raw source PDFs — keep repo lean, add a note in README instead)
+data/raw_docs/*.pdf
+
+# uv
+uv.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
