@@ -17,10 +17,12 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain_groq import ChatGroq
 from langchain_core.tools import tool
-from langchain.agents import create_tool_calling_agent, AgentExecutor
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.agents import create_agent
 
-from tax_calculator import calculate_tax, TAX_SLABS
+try:
+    from app.services.tax_calculator import calculate_tax, TAX_SLABS
+except ImportError:
+    from tax_calculator import calculate_tax, TAX_SLABS
 
 INDEX_NAME = "tax-assistant"
 EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
@@ -97,20 +99,17 @@ def build_agent(vectorstore):
     tools = build_tools(vectorstore)
     llm = ChatGroq(model=LLM_MODEL, temperature=0)
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", SYSTEM_PROMPT),
-        ("human", "{input}"),
-        MessagesPlaceholder(variable_name="agent_scratchpad"),
-    ])
-
-    agent = create_tool_calling_agent(llm, tools, prompt)
-    executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-    return executor
+    agent = create_agent(
+        model=llm,
+        tools=tools,
+        system_prompt=SYSTEM_PROMPT,
+    )
+    return agent
 
 
 if __name__ == "__main__":
     vectorstore = get_vectorstore()
-    executor = build_agent(vectorstore)
+    agent = build_agent(vectorstore)
 
     test_questions = [
         "How much tax do I owe on an annual salary of 1,200,000 rupees for tax year 2025-26?",
@@ -121,5 +120,6 @@ if __name__ == "__main__":
     for q in test_questions:
         print("\n" + "=" * 80)
         print(f"Q: {q}\n")
-        result = executor.invoke({"input": q})
-        print(f"\nA: {result['output']}\n")
+        result = agent.invoke({"messages": [{"role": "user", "content": q}]})
+        final_message = result["messages"][-1].content
+        print(f"\nA: {final_message}\n")
