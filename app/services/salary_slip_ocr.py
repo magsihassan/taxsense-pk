@@ -172,7 +172,7 @@ def process_salary_slip(file_path: str) -> dict:
 
 
 if __name__ == "__main__":
-    test_file = "data/test_salary_slips/s1.pdf"
+    test_file = "data/test_salary_slips/s3.pdf"
     if os.path.exists(test_file):
         result = process_salary_slip(test_file)
         print(json.dumps(result, indent=2, default=str))
