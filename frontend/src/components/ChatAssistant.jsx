@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatIcon, SendIcon, CitationIcon, RefreshIcon, AlertCircleIcon, ShieldIcon } from './Icons';
 
+const MAX_INPUT_CHARS = 2000;
+const REQUEST_TIMEOUT_MS = 30000; // 30s timeout
+
 export function ChatAssistant({
   externalPrompt,
   onClearExternalPrompt,
@@ -30,6 +33,7 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
   const [error, setError] = useState(null);
 
   const messagesEndRef = useRef(null);
+  const abortControllerRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -48,15 +52,42 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
   }, [externalPrompt]);
 
   const sendMessage = async (textToSend) => {
-    const query = textToSend || input;
-    if (!query.trim() || isLoading) return;
+    const rawQuery = textToSend || input;
+    const query = rawQuery.trim();
+    if (!query || isLoading) return;
 
-    setLastQuery(query.trim());
+    // Guard against offline state
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setError('You are currently offline.');
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'user',
+          content: query,
+        },
+        {
+          role: 'assistant',
+          content: 'Network connection unavailable. Please check your internet connection and try again.',
+          isError: true,
+          failedQuery: query,
+        },
+      ]);
+      return;
+    }
+
+    setLastQuery(query);
     setError(null);
-    const userMessage = { role: 'user', content: query.trim() };
+    const userMessage = { role: 'user', content: query };
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+
+    // Hardened timeout with AbortController
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, REQUEST_TIMEOUT_MS);
 
     try {
       const response = await fetch('/api/chat', {
@@ -65,10 +96,13 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: query.trim(),
+          message: query,
           session_id: sessionId,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -86,19 +120,27 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
         setSessionId(data.session_id);
       }
     } catch (err) {
+      clearTimeout(timeoutId);
       console.error('Chat error:', err);
-      setError(err.message || 'Unable to connect to the tax assistant API.');
+
+      let friendlyMessage = `Unable to connect to the statutory advisory service. Please ensure the Python backend server is running on port 8000.\n\n*Technical Detail: ${err.message}*`;
+      if (err.name === 'AbortError') {
+        friendlyMessage = 'The request timed out after 30 seconds. The advisory agent took too long to retrieve and generate a response. Please check your server and try again.';
+      }
+
+      setError(err.message || 'Connection failed.');
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: `Unable to connect to the statutory advisory service. Please ensure the Python backend server is running on port 8000.\n\n*Technical Detail: ${err.message}*`,
+          content: friendlyMessage,
           isError: true,
-          failedQuery: query.trim(),
+          failedQuery: query,
         },
       ]);
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -106,7 +148,7 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
     try {
       await fetch(`/api/chat/${sessionId}`, { method: 'DELETE' });
     } catch (e) {
-      // Ignore cleanup error
+      // Non-blocking cleanup
     }
     const newSession = 'session_' + Math.random().toString(36).substring(2, 10);
     setSessionId(newSession);
@@ -127,7 +169,6 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
 
   // Helper to parse statutory citation blocks if present in text
   const renderMessageContent = (content) => {
-    // Check for [Source: ..., page ...] citations
     const sourceRegex = /\[Source:\s*([^,\]]+)(?:,\s*page\s*([^\]]+))?\]/gi;
     const parts = [];
     let lastIndex = 0;
@@ -158,14 +199,19 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
 
     if (parts.length <= 1) {
       return (
-        <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+        <div style={{
+          whiteSpace: 'pre-wrap',
+          lineHeight: 1.6,
+          overflowWrap: 'break-word',
+          wordBreak: 'break-word',
+        }}>
           {content}
         </div>
       );
     }
 
     return (
-      <div style={{ lineHeight: 1.6 }}>
+      <div style={{ lineHeight: 1.6, overflowWrap: 'break-word', wordBreak: 'break-word' }}>
         {parts.map((part, idx) => {
           if (part.type === 'text') {
             return (
@@ -236,16 +282,7 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
       </div>
 
       {/* Chat Messages Container */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '20px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px',
-        background: '#FAFCFB',
-        maxHeight: '520px',
-      }}>
+      <div className="chat-messages-scroll">
         {messages.map((msg, index) => {
           const isUser = msg.role === 'user';
           return (
@@ -255,6 +292,7 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: isUser ? 'flex-end' : 'flex-start',
+                width: '100%',
               }}
             >
               <div style={{
@@ -281,6 +319,8 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
                 border: isUser ? '1px solid var(--color-primary-deep)' : (msg.isError ? '1px solid #F8B4B4' : '1px solid var(--color-neutral-border)'),
                 boxShadow: isUser ? 'none' : 'var(--shadow-subtle)',
                 fontSize: '0.875rem',
+                overflowWrap: 'break-word',
+                wordBreak: 'break-word',
               }}>
                 {renderMessageContent(msg.content)}
 
@@ -345,7 +385,7 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Suggested Questions (only if few messages) */}
+      {/* Suggested Questions */}
       {messages.length <= 2 && (
         <div style={{
           padding: '10px 20px',
@@ -400,27 +440,42 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
           }}
           style={{ display: 'flex', gap: '10px' }}
         >
-          <input
-            type="text"
-            className="form-input"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask an FBR tax question (e.g. wealth statement threshold, exemptions, slabs)..."
-            disabled={isLoading}
-            style={{
-              flex: 1,
-              border: '1px solid var(--color-neutral-border)',
-              borderRadius: 'var(--radius-sm)',
-              padding: '10px 14px',
-              fontFamily: 'var(--font-body)',
-              fontSize: '0.875rem',
-            }}
-          />
+          <div style={{ flex: 1, position: 'relative' }}>
+            <input
+              type="text"
+              className="form-input"
+              value={input}
+              maxLength={MAX_INPUT_CHARS}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask an FBR tax question (e.g. wealth statement threshold, exemptions, slabs)..."
+              disabled={isLoading}
+              style={{
+                width: '100%',
+                border: '1px solid var(--color-neutral-border)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '10px 14px',
+                fontFamily: 'var(--font-body)',
+                fontSize: '1rem',
+              }}
+            />
+            {input.length > 1500 && (
+              <span style={{
+                position: 'absolute',
+                right: '10px',
+                bottom: '-18px',
+                fontSize: '0.625rem',
+                color: input.length >= MAX_INPUT_CHARS ? 'var(--color-semantic-surcharge)' : 'var(--color-neutral-muted)',
+                fontFamily: 'var(--font-mono)',
+              }}>
+                {input.length} / {MAX_INPUT_CHARS}
+              </span>
+            )}
+          </div>
           <button
             type="submit"
             className="btn btn-primary"
             disabled={isLoading || !input.trim()}
-            style={{ padding: '0 18px', minWidth: '88px' }}
+            style={{ padding: '0 18px', minWidth: '88px', height: '42px' }}
           >
             <SendIcon size={16} />
             <span>Send</span>

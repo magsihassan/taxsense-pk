@@ -1,6 +1,7 @@
 /**
  * Deterministic Salaried Income Tax Calculation Engine for Pakistan
  * Replicates FBR rates and rules from Finance Act 2025 and Finance Act 2026.
+ * Hardened for extreme inputs, overflows, and currency parsing.
  */
 
 export const TAX_SLABS = {
@@ -24,14 +25,28 @@ export const TAX_SLABS = {
   ],
 };
 
-export const SURCHARGE_THRESHOLD = 10000000;
+export const SURCHARGE_THRESHOLD = 10000000; // 10M PKR
+export const MAX_CALCULABLE_INCOME = 1000000000; // 1 Billion PKR ceiling for numeric stability
 export const SURCHARGE_RATES = {
   '2025-26': 0.09,
   '2026-27': 0.0,
 };
 
+export function parseCleanIncome(val) {
+  if (typeof val === 'number') {
+    if (isNaN(val) || val < 0) return 0;
+    return Math.min(MAX_CALCULABLE_INCOME, Math.round(val));
+  }
+  if (!val) return 0;
+  const cleaned = String(val).replace(/[^0-9.]/g, '');
+  const parsed = parseFloat(cleaned);
+  if (isNaN(parsed) || parsed < 0) return 0;
+  return Math.min(MAX_CALCULABLE_INCOME, Math.round(parsed));
+}
+
 export function calculateTax(annualIncome, taxYear = '2025-26') {
-  const safeIncome = Math.max(0, Number(annualIncome) || 0);
+  const parsedIncome = parseCleanIncome(annualIncome);
+  const isCapped = parsedIncome >= MAX_CALCULABLE_INCOME;
   const slabs = TAX_SLABS[taxYear] || TAX_SLABS['2025-26'];
 
   let matchedSlab = slabs[0];
@@ -39,8 +54,8 @@ export function calculateTax(annualIncome, taxYear = '2025-26') {
 
   for (let i = 0; i < slabs.length; i++) {
     const slab = slabs[i];
-    if (slab.upper === null || safeIncome <= slab.upper) {
-      if (safeIncome > slab.lower || slab.lower === 0) {
+    if (slab.upper === null || parsedIncome <= slab.upper) {
+      if (parsedIncome > slab.lower || slab.lower === 0) {
         matchedSlab = slab;
         matchedIndex = i;
         break;
@@ -48,19 +63,19 @@ export function calculateTax(annualIncome, taxYear = '2025-26') {
     }
   }
 
-  const excess = Math.max(0, safeIncome - matchedSlab.lower);
+  const excess = Math.max(0, parsedIncome - matchedSlab.lower);
   const marginalTax = excess * matchedSlab.rate;
-  const baseTax = safeIncome > matchedSlab.lower ? matchedSlab.baseTax : 0;
+  const baseTax = parsedIncome > matchedSlab.lower ? matchedSlab.baseTax : 0;
   const totalBeforeSurcharge = Math.max(0, baseTax + marginalTax);
 
   let surcharge = 0;
-  if (safeIncome > SURCHARGE_THRESHOLD) {
+  if (parsedIncome > SURCHARGE_THRESHOLD) {
     const rate = SURCHARGE_RATES[taxYear] || 0;
     surcharge = totalBeforeSurcharge * rate;
   }
 
   const totalTax = Math.round(totalBeforeSurcharge + surcharge);
-  const effectiveRateNum = safeIncome > 0 ? (totalTax / safeIncome) * 100 : 0;
+  const effectiveRateNum = parsedIncome > 0 ? (totalTax / parsedIncome) * 100 : 0;
   const monthlyWithholding = Math.round(totalTax / 12);
 
   const slabRange = matchedSlab.upper
@@ -69,7 +84,9 @@ export function calculateTax(annualIncome, taxYear = '2025-26') {
 
   return {
     taxYear,
-    annualTaxableIncome: safeIncome,
+    annualTaxableIncome: parsedIncome,
+    isCapped,
+    maxAllowed: MAX_CALCULABLE_INCOME,
     slabRange,
     baseTax: Math.round(baseTax),
     marginalRate: `${Math.round(matchedSlab.rate * 100)}%`,
@@ -89,7 +106,8 @@ export function calculateTax(annualIncome, taxYear = '2025-26') {
 }
 
 export function formatPKR(val, includePrefix = true) {
-  const num = Number(val) || 0;
+  const num = Number(val);
+  if (isNaN(num)) return includePrefix ? 'PKR 0' : '0';
   const formatted = Math.round(num).toLocaleString('en-US');
   return includePrefix ? `PKR ${formatted}` : formatted;
 }

@@ -3,70 +3,30 @@ import { ShieldIcon, RefreshIcon } from './Icons';
 
 export function Header({ taxYear, setTaxYear, onResetAll, apiStatus = 'connected' }) {
   return (
-    <header style={{
-      background: 'var(--color-neutral-surface)',
-      borderBottom: '1px solid var(--color-neutral-border)',
-      position: 'sticky',
-      top: 0,
-      zIndex: 50,
-    }}>
-      <div style={{
-        maxWidth: '1400px',
-        margin: '0 auto',
-        padding: '0 var(--spacing-lg)',
-        height: '64px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-      }}>
+    <header className="app-header">
+      <div className="header-inner">
         {/* Brand Mark */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{
-            width: '38px',
-            height: '38px',
-            background: 'var(--color-primary)',
-            color: 'var(--color-neutral-surface)',
-            borderRadius: 'var(--radius-sm)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '1px solid var(--color-primary-deep)',
-            boxShadow: '0 1px 3px rgba(14, 56, 43, 0.15)',
-          }}>
+        <div className="header-brand">
+          <div className="header-brand-icon">
             <ShieldIcon size={22} />
           </div>
           <div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}>
-              <span style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '1.25rem',
-                fontWeight: 700,
-                color: 'var(--color-primary)',
-                letterSpacing: '-0.02em',
-              }}>
+            <div className="header-title-row">
+              <h1 className="header-title">
                 TaxSense PK
-              </span>
+              </h1>
               <span className="badge badge-ochre" style={{ fontSize: '0.625rem' }}>
                 Official Rates
               </span>
             </div>
-            <p style={{
-              fontSize: '0.75rem',
-              color: 'var(--color-neutral-muted)',
-              fontWeight: 500,
-              lineHeight: 1.2,
-            }}>
+            <p className="header-subtitle">
               Pakistan Salaried Income Tax Ledger & Statutory Assistant
             </p>
           </div>
         </div>
 
         {/* Action & Tax Year Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div className="header-actions">
           {/* Tax Year Selector in Header */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{
@@ -99,7 +59,7 @@ export function Header({ taxYear, setTaxYear, onResetAll, apiStatus = 'connected
             </div>
           </div>
 
-          <div style={{ width: '1px', height: '24px', background: 'var(--color-neutral-border)' }} />
+          <div className="header-divider" />
 
           {/* Reset / New Session */}
           <button

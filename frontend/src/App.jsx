@@ -53,9 +53,7 @@ export function App() {
         </div>
 
         {/* Left Cockpit: Calculator Ledger */}
-        <div style={{
-          display: activeMobileTab === 'calculator' || window.innerWidth > 1024 ? 'block' : 'none',
-        }}>
+        <div className={`cockpit-column ${activeMobileTab === 'calculator' ? 'active-tab' : ''}`}>
           <CalculatorLedger
             annualIncome={annualIncome}
             setAnnualIncome={setAnnualIncome}
@@ -66,9 +64,7 @@ export function App() {
         </div>
 
         {/* Right Cockpit: Conversational Chat Assistant */}
-        <div style={{
-          display: activeMobileTab === 'assistant' || window.innerWidth > 1024 ? 'block' : 'none',
-        }}>
+        <div className={`cockpit-column ${activeMobileTab === 'assistant' ? 'active-tab' : ''}`}>
           <ChatAssistant
             externalPrompt={externalPrompt}
             onClearExternalPrompt={() => setExternalPrompt(null)}

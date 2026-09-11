@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { calculateTax, formatPKR, SURCHARGE_THRESHOLD } from '../utils/taxCalculator';
-import { CalculatorIcon, InfoIcon, AlertCircleIcon, ChatIcon, CopyIcon, CheckIcon } from './Icons';
+import { calculateTax, formatPKR, parseCleanIncome, SURCHARGE_THRESHOLD, MAX_CALCULABLE_INCOME } from '../utils/taxCalculator';
+import { CalculatorIcon, InfoIcon, AlertCircleIcon, ChatIcon, CopyIcon, CheckIcon, ChevronRightIcon } from './Icons';
 
 export function CalculatorLedger({
   annualIncome,
@@ -12,6 +12,7 @@ export function CalculatorLedger({
   const [inputMode, setInputMode] = useState('annual'); // 'annual' | 'monthly'
   const [activeTooltip, setActiveTooltip] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [isSlabsExpanded, setIsSlabsExpanded] = useState(false);
 
   // Derive calculated values deterministically
   const calc = useMemo(() => {
@@ -31,10 +32,10 @@ export function CalculatorLedger({
   const nextSlab = calc.allSlabs[calc.matchedIndex + 1] || null;
   const headroomToNextSlab = nextSlab ? Math.max(0, nextSlab.lower - calc.annualTaxableIncome) : null;
 
-  // Handle salary input change
+  // Handle salary input change with hardened parsing
   const handleInputChange = (e) => {
-    const rawValue = e.target.value.replace(/[^0-9]/g, '');
-    const num = Number(rawValue) || 0;
+    const rawValue = e.target.value.replace(/[^0-9.]/g, '');
+    const num = parseCleanIncome(rawValue);
     if (inputMode === 'monthly') {
       setAnnualIncome(num * 12);
     } else {
@@ -60,6 +61,23 @@ export function CalculatorLedger({
     onSendToAssistant(text);
   };
 
+  const fallbackCopy = (text) => {
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    } catch (e) {
+      console.error('Clipboard copy failed:', e);
+    }
+  };
+
   const handleCopyBreakdown = () => {
     const text = `TaxSense PK — Salaried Tax Computation
 Tax Year: TY ${taxYear}
@@ -70,11 +88,16 @@ Estimated Monthly Net Take-Home: PKR ${monthlyNetTakeHome.toLocaleString()}
 Effective Tax Rate: ${calc.effectiveRate}
 Marginal Slab Rate: ${calc.marginalRate} (Applies on excess above PKR ${calc.allSlabs[calc.matchedIndex].lower.toLocaleString()})
 ${calc.hasSurcharge ? `Includes 9% Surcharge of PKR ${calc.surcharge.toLocaleString()} (Income > PKR 10M in TY 2025-26)\n` : ''}Governing Law: FBR Income Tax Ordinance 2001 (First Schedule, Part I)`;
-    
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2200);
+      navigator.clipboard.writeText(text)
+        .then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2200);
+        })
+        .catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
     }
   };
 
@@ -178,6 +201,24 @@ ${calc.hasSurcharge ? `Includes 9% Surcharge of PKR ${calc.surcharge.toLocaleStr
               </button>
             )}
           </div>
+
+          {calc.isCapped && (
+            <div style={{
+              background: '#FFF8E6',
+              border: '1px solid #F2CF77',
+              borderRadius: 'var(--radius-xs)',
+              padding: '8px 12px',
+              marginTop: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '0.75rem',
+              color: 'var(--color-accent)',
+            }}>
+              <AlertCircleIcon size={14} />
+              <span>Calculation capped at maximum stable threshold of PKR 1 Billion.</span>
+            </div>
+          )}
 
           <p style={{ fontSize: '0.6875rem', color: 'var(--color-neutral-muted)', marginTop: '6px', lineHeight: 1.3 }}>
             Enter your total annual gross salary from your payslip or employment agreement.
@@ -493,7 +534,7 @@ ${calc.hasSurcharge ? `Includes 9% Surcharge of PKR ${calc.surcharge.toLocaleStr
           </div>
         </div>
 
-        {/* Tabular Slabs Visualizer */}
+        {/* Tabular Slabs Visualizer with Mobile Collapsible Support */}
         <div>
           <div style={{
             display: 'flex',
@@ -504,9 +545,19 @@ ${calc.hasSurcharge ? `Includes 9% Surcharge of PKR ${calc.surcharge.toLocaleStr
             <span className="form-label" style={{ margin: 0 }}>
               FBR Official Slab Schedule (TY {taxYear})
             </span>
-            <span style={{ fontSize: '0.75rem', color: 'var(--color-neutral-muted)' }}>
-              Income Tax Ordinance, First Sched.
-            </span>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setIsSlabsExpanded(!isSlabsExpanded)}
+              style={{
+                padding: '2px 6px',
+                fontSize: '0.75rem',
+                color: 'var(--color-primary)',
+                fontWeight: 600,
+              }}
+            >
+              {isSlabsExpanded ? 'Collapse Slabs ▴' : `View All ${calc.allSlabs.length} Slabs ▾`}
+            </button>
           </div>
 
           <div style={{
@@ -532,31 +583,39 @@ ${calc.hasSurcharge ? `Includes 9% Surcharge of PKR ${calc.surcharge.toLocaleStr
                 </tr>
               </thead>
               <tbody>
-                {calc.allSlabs.map((slab, idx) => {
-                  const isCurrent = idx === calc.matchedIndex;
-                  return (
-                    <tr
-                      key={idx}
-                      style={{
-                        background: isCurrent ? 'var(--color-primary-surface)' : (idx % 2 === 0 ? 'var(--color-neutral-surface)' : '#FAFCFB'),
-                        borderBottom: idx < calc.allSlabs.length - 1 ? '1px solid var(--color-neutral-border-subtle)' : 'none',
-                        fontWeight: isCurrent ? 600 : 400,
-                        color: isCurrent ? 'var(--color-primary)' : 'var(--color-neutral-text)',
-                      }}
-                    >
-                      <td style={{ padding: '7px 10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {isCurrent && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--color-primary)' }} />}
-                        <span>{slab.label}</span>
-                      </td>
-                      <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)' }} className="tabular-nums">
-                        {slab.baseTax > 0 ? formatPKR(slab.baseTax) : '—'}
-                      </td>
-                      <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)' }} className="tabular-nums">
-                        {Math.round(slab.rate * 100)}%
-                      </td>
-                    </tr>
-                  );
-                })}
+                {calc.allSlabs
+                  .filter((_, idx) => isSlabsExpanded || idx === calc.matchedIndex)
+                  .map((slab, filteredIdx) => {
+                    const originalIdx = isSlabsExpanded ? filteredIdx : calc.matchedIndex;
+                    const isCurrent = originalIdx === calc.matchedIndex;
+                    return (
+                      <tr
+                        key={originalIdx}
+                        style={{
+                          background: isCurrent ? 'var(--color-primary-surface)' : (originalIdx % 2 === 0 ? 'var(--color-neutral-surface)' : '#FAFCFB'),
+                          borderBottom: '1px solid var(--color-neutral-border-subtle)',
+                          fontWeight: isCurrent ? 600 : 400,
+                          color: isCurrent ? 'var(--color-primary)' : 'var(--color-neutral-text)',
+                        }}
+                      >
+                        <td style={{ padding: '7px 10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {isCurrent && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--color-primary)' }} />}
+                          <span>{slab.label}</span>
+                          {!isSlabsExpanded && (
+                            <span className="badge badge-primary" style={{ fontSize: '0.5625rem', padding: '1px 5px', marginLeft: 'auto' }}>
+                              Your Slab
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)' }} className="tabular-nums">
+                          {slab.baseTax > 0 ? formatPKR(slab.baseTax) : '—'}
+                        </td>
+                        <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)' }} className="tabular-nums">
+                          {Math.round(slab.rate * 100)}%
+                        </td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
           </div>
