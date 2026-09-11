@@ -12,3 +12,7 @@ python-dotenv
 langsmith
 ipykernel
 tqdm
+pytesseract 
+pillow 
+pdf2image 
+pypdf

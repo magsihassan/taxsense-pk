@@ -93,6 +93,8 @@ frontend/.vite/
 data/raw_docs/*.pdf
 data/processed/
 data/chunks/
+data/test_salary_slips/
+data/raw_docs/test_salary_slips/
 
 # HuggingFace & PyTorch model cache
 models_cache/
