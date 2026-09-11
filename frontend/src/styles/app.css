@@ -1,0 +1,365 @@
+/* TaxSense PK Application Stylesheet
+   Governed by DESIGN.md & craft-floor.md
+   Institutional, Trustworthy, Precision Layout
+*/
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Browser Surfaces Theming */
+::selection {
+  background-color: var(--color-primary);
+  color: var(--color-neutral-surface);
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+html {
+  font-family: var(--font-body);
+  color: var(--color-neutral-text);
+  background-color: var(--color-neutral-ground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.55;
+  caret-color: var(--color-primary);
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-neutral-ground);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-border);
+  border-radius: var(--radius-xs);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral-muted);
+}
+
+/* Layout Shell */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Main Split Cockpit */
+.main-workspace {
+  flex: 1;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: var(--spacing-lg);
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .main-workspace {
+    grid-template-columns: 1fr;
+    padding: var(--spacing-md);
+    gap: var(--spacing-md);
+  }
+}
+
+/* Mobile / Tablet Tab Switcher */
+.mobile-view-tabs {
+  display: none;
+  background: var(--color-neutral-surface);
+  border: 1px solid var(--color-neutral-border);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  margin-bottom: var(--spacing-md);
+}
+
+@media (max-width: 1024px) {
+  .mobile-view-tabs {
+    display: flex;
+    gap: 4px;
+  }
+}
+
+.mobile-tab-btn {
+  flex: 1;
+  padding: 8px 12px;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--color-neutral-muted);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.mobile-tab-btn.active {
+  background: var(--color-primary);
+  color: var(--color-neutral-surface);
+}
+
+/* Institutional Card Foundation */
+.ledger-card {
+  background: var(--color-neutral-surface);
+  border: 1px solid var(--color-neutral-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-subtle);
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-neutral-border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #FAFCFB;
+}
+
+.card-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-neutral-text);
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-body {
+  padding: 20px;
+}
+
+/* Statutory Citation Block */
+.citation-callout {
+  background: var(--color-primary-surface);
+  border: 1px solid var(--color-neutral-border);
+  border-left: 1px solid var(--color-neutral-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  margin: 12px 0;
+  font-size: 0.875rem;
+}
+
+.citation-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.citation-text {
+  color: var(--color-neutral-text);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  padding: 10px 18px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  border: 1px solid transparent;
+  line-height: 1.2;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-neutral-surface);
+  border-color: var(--color-primary-deep);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-deep);
+}
+
+.btn-primary:active:not(:disabled) {
+  background: #04140F;
+}
+
+.btn-secondary {
+  background: var(--color-neutral-surface);
+  color: var(--color-primary);
+  border-color: var(--color-neutral-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--color-primary-surface);
+  border-color: var(--color-primary);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-neutral-muted);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--color-neutral-ground);
+  color: var(--color-neutral-text);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Form Controls */
+.input-group {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--color-neutral-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-neutral-surface);
+  overflow: hidden;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.input-group:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-focus);
+}
+
+.input-prefix {
+  background: var(--color-neutral-ground);
+  color: var(--color-neutral-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  border-right: 1px solid var(--color-neutral-border);
+  user-select: none;
+}
+
+.form-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--color-neutral-text);
+  font-variant-numeric: tabular-nums;
+  background: transparent;
+  min-width: 0;
+}
+
+.form-label {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-neutral-muted);
+  margin-bottom: 6px;
+}
+
+/* Segmented Control */
+.segmented-control {
+  display: inline-flex;
+  background: var(--color-neutral-ground);
+  border: 1px solid var(--color-neutral-border);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  gap: 3px;
+}
+
+.segmented-option {
+  padding: 6px 14px;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--color-neutral-muted);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.segmented-option.active {
+  background: var(--color-primary);
+  color: var(--color-neutral-surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* Badges & Chips */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  border-radius: var(--radius-xs);
+  border: 1px solid transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.badge-primary {
+  background: var(--color-primary);
+  color: var(--color-neutral-surface);
+}
+
+.badge-ochre {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  border-color: #E2CE9A;
+}
+
+.badge-surcharge {
+  background: #FCE8E8;
+  color: var(--color-semantic-surcharge);
+  border-color: #F4BEBE;
+}
+
+.badge-relief {
+  background: #E8F5EE;
+  color: var(--color-semantic-deduction);
+  border-color: #C0E3CF;
+}
