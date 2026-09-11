@@ -1,10 +1,16 @@
 import os
 import json
+from pathlib import Path
+from dotenv import load_dotenv
 import pytesseract
 from PIL import Image, ImageEnhance, ImageFilter
 from pdf2image import convert_from_path
 from pypdf import PdfReader
 from langchain_groq import ChatGroq
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+load_dotenv(PROJECT_ROOT / ".env")
+load_dotenv()
 
 # --- Windows-specific paths — update these to match your install locations ---
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
