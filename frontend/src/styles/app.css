@@ -363,3 +363,58 @@ body {
   color: var(--color-semantic-deduction);
   border-color: #C0E3CF;
 }
+
+/* Educational Tooltips & Disclosures */
+.info-hint-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.info-hint-trigger {
+  background: transparent;
+  border: none;
+  color: var(--color-neutral-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border-radius: var(--radius-xs);
+  transition: color var(--transition-fast);
+}
+
+.info-hint-trigger:hover,
+.info-hint-trigger:focus-visible {
+  color: var(--color-primary);
+}
+
+.info-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-primary-deep);
+  color: #FFFFFF;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  width: 240px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(7, 32, 24, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+}
+
+.info-popover::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: var(--color-primary-deep) transparent transparent transparent;
+}
+

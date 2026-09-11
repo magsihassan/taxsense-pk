@@ -9,20 +9,21 @@ export function ChatAssistant({
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: `Welcome to TaxSense PK. I am your statutory assistant for Pakistani salaried income tax.
+      content: `Welcome to TaxSense PK. I provide authoritative guidance on Pakistani salaried income tax rules.
 
-You can ask me questions regarding:
-• Official FBR tax slabs and calculation formulas
-• Filing deadlines and penalty regulations
+I can explain:
+• Official FBR tax slabs & calculation breakdowns
+• Filing deadlines & late-filing penalty regulations
 • Wealth statement requirements (Section 116)
-• Tax credits, deductions, and withholding certificates
+• Eligible tax credits, rebates, & monthly withholding certificates
 
-All statutory answers are retrieved directly from official government records (Income Tax Ordinance 2001 and Finance Act 2026). How can I assist with your tax obligations today?`,
+All statutory answers cite official publications (Income Tax Ordinance 2001 and Finance Act 2026). How can I assist with your tax obligations today?`,
     },
   ]);
 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [lastQuery, setLastQuery] = useState('');
   const [sessionId, setSessionId] = useState(() => {
     return 'session_' + Math.random().toString(36).substring(2, 10);
   });
@@ -50,6 +51,7 @@ All statutory answers are retrieved directly from official government records (I
     const query = textToSend || input;
     if (!query.trim() || isLoading) return;
 
+    setLastQuery(query.trim());
     setError(null);
     const userMessage = { role: 'user', content: query.trim() };
     setMessages((prev) => [...prev, userMessage]);
@@ -90,8 +92,9 @@ All statutory answers are retrieved directly from official government records (I
         ...prev,
         {
           role: 'assistant',
-          content: `Unable to complete your request. Please ensure the backend server is running.\n\n*Error: ${err.message}*`,
+          content: `Unable to connect to the statutory advisory service. Please ensure the Python backend server is running on port 8000.\n\n*Technical Detail: ${err.message}*`,
           isError: true,
+          failedQuery: query.trim(),
         },
       ]);
     } finally {
@@ -117,8 +120,8 @@ All statutory answers are retrieved directly from official government records (I
 
   const suggestedQuestions = [
     'What is the salary tax filing deadline for Tax Year 2025-26?',
-    'Who is legally required to file a wealth statement under Section 116?',
-    'What changed in tax slabs between TY 2025-26 and TY 2026-27?',
+    'Who is legally required to submit a wealth statement under Section 116?',
+    'What changed in salary tax slabs between TY 2025-26 and TY 2026-27?',
     'How does employer tax withholding work on monthly salary?',
   ];
 
@@ -273,13 +276,27 @@ All statutory answers are retrieved directly from official government records (I
                 maxWidth: '88%',
                 padding: '12px 16px',
                 borderRadius: 'var(--radius-sm)',
-                background: isUser ? 'var(--color-primary)' : 'var(--color-neutral-surface)',
-                color: isUser ? 'var(--color-neutral-surface)' : 'var(--color-neutral-text)',
-                border: isUser ? '1px solid var(--color-primary-deep)' : '1px solid var(--color-neutral-border)',
+                background: isUser ? 'var(--color-primary)' : (msg.isError ? '#FDF2F2' : 'var(--color-neutral-surface)'),
+                color: isUser ? 'var(--color-neutral-surface)' : (msg.isError ? 'var(--color-semantic-surcharge)' : 'var(--color-neutral-text)'),
+                border: isUser ? '1px solid var(--color-primary-deep)' : (msg.isError ? '1px solid #F8B4B4' : '1px solid var(--color-neutral-border)'),
                 boxShadow: isUser ? 'none' : 'var(--shadow-subtle)',
                 fontSize: '0.875rem',
               }}>
                 {renderMessageContent(msg.content)}
+
+                {msg.isError && msg.failedQuery && (
+                  <div style={{ marginTop: '10px' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => sendMessage(msg.failedQuery)}
+                      style={{ padding: '4px 10px', fontSize: '0.75rem', gap: '6px' }}
+                    >
+                      <RefreshIcon size={12} />
+                      <span>Retry Query</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -388,7 +405,7 @@ All statutory answers are retrieved directly from official government records (I
             className="form-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about FBR rules, wealth statements, exemptions, deadlines..."
+            placeholder="Ask an FBR tax question (e.g. wealth statement threshold, exemptions, slabs)..."
             disabled={isLoading}
             style={{
               flex: 1,
