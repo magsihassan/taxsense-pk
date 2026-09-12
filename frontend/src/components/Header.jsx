@@ -1,11 +1,11 @@
 import React from 'react';
-import { ShieldIcon, RefreshIcon, CalculatorIcon, FileTextIcon } from './Icons';
+import { ShieldIcon, RefreshIcon, ChatIcon, FileTextIcon, CalculatorIcon } from './Icons';
 
 export function Header({
   taxYear,
   setTaxYear,
-  activeView = 'calculator',
-  setActiveView,
+  activeTab = 'assistant',
+  setActiveTab,
   onResetAll,
 }) {
   return (
@@ -31,27 +31,35 @@ export function Header({
           </div>
         </div>
 
-        {/* View Mode Navigation Switcher */}
-        {setActiveView && (
+        {/* View Mode Navigation Switcher - 3 Tabs */}
+        {setActiveTab && (
           <nav className="header-nav-tabs" aria-label="Main Navigation">
             <button
               type="button"
-              className={`header-nav-tab ${activeView === 'calculator' ? 'active' : ''}`}
-              onClick={() => setActiveView('calculator')}
+              className={`header-nav-tab ${activeTab === 'assistant' ? 'active' : ''}`}
+              onClick={() => setActiveTab('assistant')}
             >
-              <CalculatorIcon size={15} />
-              <span>Tax Calculator</span>
+              <ChatIcon size={15} />
+              <span>Statutory Advisory Assistant</span>
             </button>
             <button
               type="button"
-              className={`header-nav-tab ${activeView === 'salary-slip' ? 'active' : ''}`}
-              onClick={() => setActiveView('salary-slip')}
+              className={`header-nav-tab ${activeTab === 'salary-slip' ? 'active' : ''}`}
+              onClick={() => setActiveTab('salary-slip')}
             >
               <FileTextIcon size={15} />
               <span>Salary Slip Audit</span>
               <span className="badge badge-ochre" style={{ fontSize: '0.5625rem', padding: '1px 5px' }}>
                 OCR
               </span>
+            </button>
+            <button
+              type="button"
+              className={`header-nav-tab ${activeTab === 'calculator' ? 'active' : ''}`}
+              onClick={() => setActiveTab('calculator')}
+            >
+              <CalculatorIcon size={15} />
+              <span>Tax Calculator</span>
             </button>
           </nav>
         )}

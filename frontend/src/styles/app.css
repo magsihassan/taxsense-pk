@@ -62,38 +62,85 @@ body {
   flex-direction: column;
 }
 
-/* Main Split Cockpit */
+/* Main Tabbed Workspace */
 .main-workspace {
   flex: 1;
-  max-width: 1400px;
+  max-width: 1040px;
   width: 100%;
   margin: 0 auto;
   padding: var(--spacing-lg);
-  display: grid;
-  grid-template-columns: 1fr 1.25fr;
-  gap: var(--spacing-lg);
-  align-items: start;
-}
-
-/* Responsive Cockpit Layout */
-.cockpit-column {
-  min-width: 0;
   display: flex;
   flex-direction: column;
 }
 
-@media (max-width: 1024px) {
-  .cockpit-column {
-    display: none;
+/* 3-Tab Workspace Navigation Bar */
+.workspace-tab-nav {
+  display: flex;
+  background: var(--color-neutral-surface);
+  border: 1px solid var(--color-neutral-border);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  gap: 4px;
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-subtle);
+}
+
+.workspace-tab-btn {
+  flex: 1;
+  padding: 10px 16px;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--color-neutral-muted);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.workspace-tab-btn:hover:not(.active) {
+  background: var(--color-primary-surface);
+  color: var(--color-neutral-text);
+}
+
+.workspace-tab-btn.active {
+  background: var(--color-primary);
+  color: var(--color-neutral-surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 768px) {
+  .workspace-tab-nav {
+    flex-direction: column;
+    gap: 3px;
   }
-  .cockpit-column.active-tab {
-    display: flex;
+  .workspace-tab-btn {
+    justify-content: flex-start;
+    padding: 9px 12px;
+    font-size: 0.8125rem;
   }
 }
 
-@media (min-width: 1025px) {
-  .cockpit-column {
-    display: flex !important;
+.tab-view-container {
+  width: 100%;
+  min-width: 0;
+  animation: tabFadeIn var(--transition-normal);
+}
+
+@keyframes tabFadeIn {
+  from {
+    opacity: 0.85;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
