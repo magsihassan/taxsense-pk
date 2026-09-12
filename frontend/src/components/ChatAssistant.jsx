@@ -31,6 +31,7 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
     return 'session_' + Math.random().toString(36).substring(2, 10);
   });
   const [error, setError] = useState(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const messagesEndRef = useRef(null);
   const abortControllerRef = useRef(null);
@@ -268,16 +269,64 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
           <span className="badge badge-relief" style={{ fontSize: '0.625rem' }}>
             RAG Grounded
           </span>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={handleClearHistory}
-            title="Clear Chat History"
-            style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-          >
-            <RefreshIcon size={13} />
-            <span>Clear</span>
-          </button>
+          {showClearConfirm ? (
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: '#FAF2DE',
+              border: '1px solid #D8C388',
+              padding: '3px 8px',
+              borderRadius: 'var(--radius-xs)',
+              fontSize: '0.6875rem',
+            }}>
+              <span style={{ color: '#593E02', fontWeight: 600 }}>Clear chat?</span>
+              <button
+                type="button"
+                onClick={() => {
+                  handleClearHistory();
+                  setShowClearConfirm(false);
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#8C2626',
+                  fontWeight: 700,
+                  fontSize: '0.6875rem',
+                  cursor: 'pointer',
+                  padding: '0 2px',
+                }}
+              >
+                Yes
+              </button>
+              <span style={{ color: '#D8C388' }}>|</span>
+              <button
+                type="button"
+                onClick={() => setShowClearConfirm(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--color-neutral-muted)',
+                  fontSize: '0.6875rem',
+                  cursor: 'pointer',
+                  padding: '0 2px',
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setShowClearConfirm(true)}
+              title="Clear Chat History"
+              style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+            >
+              <RefreshIcon size={13} />
+              <span>Clear</span>
+            </button>
+          )}
         </div>
       </div>
 

@@ -10,6 +10,8 @@ import {
   ShieldIcon,
   CalculatorIcon,
   ChatIcon,
+  CopyIcon,
+  CheckIcon,
 } from './Icons';
 
 const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
@@ -28,6 +30,7 @@ export function SalarySlipAuditor({
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
   const [showRawOcr, setShowRawOcr] = useState(false);
+  const [copiedHR, setCopiedHR] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -174,6 +177,47 @@ export function SalarySlipAuditor({
 
     if (onSendToAssistant) {
       onSendToAssistant(prompt);
+    }
+  };
+
+  // Generate and copy a formal audit note for HR / Payroll division
+  const handleCopyHRMemo = () => {
+    if (!result || !result.reconciliation) return;
+    const { extraction, reconciliation } = result;
+    const gross = extraction.gross_salary ? `PKR ${Number(extraction.gross_salary).toLocaleString()}` : 'N/A';
+    const withheld = extraction.income_tax_deducted ? `PKR ${Number(extraction.income_tax_deducted).toLocaleString()}` : 'N/A';
+    const expected = reconciliation.correct_monthly_tax ? `PKR ${Math.round(reconciliation.correct_monthly_tax).toLocaleString()}` : 'N/A';
+    const varianceAnnual = reconciliation.difference_annual
+      ? `${reconciliation.difference_annual < 0 ? '-' : '+'}PKR ${Math.abs(Math.round(reconciliation.difference_annual)).toLocaleString()}`
+      : 'PKR 0';
+    const statusText = reconciliation.is_mismatch
+      ? (reconciliation.difference_annual < 0 ? 'Under-withheld' : 'Over-withheld')
+      : 'Reconciled & Compliant';
+
+    const memo = `Subject: Inquiry Regarding Monthly Tax Withholding Calculation (TY ${taxYear})
+
+Dear Payroll & Finance Team,
+
+I am writing to request verification of the monthly tax withholding calculation on my salary statement for the pay period: ${extraction.pay_period || 'Current Pay Period'}.
+
+Based on the official FBR salaried individual tax slabs for Tax Year ${taxYear}:
+• Monthly Gross Salary: ${gross}
+• Actual Monthly Tax Deducted on Slip: ${withheld}
+• Prescribed FBR Monthly Tax Deduction: ${expected}
+• Estimated Annual Variance: ${varianceAnnual} (${statusText})
+
+Statutory Note: Under Section 149 of the Income Tax Ordinance 2001, withholding tax from salary is required to be deducted at the average rate calculated on total estimated annual income, with adjustments made across remaining salary periods before June 30.
+
+Could you please review my payroll tax deduction to ensure alignment with FBR Schedule I?
+
+Employee Name: ${extraction.employee_name || 'Employee'}
+Employer: ${extraction.employer_name || 'Employer'}
+Generated via TaxSense PK Statutory Ledger`;
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(memo);
+      setCopiedHR(true);
+      setTimeout(() => setCopiedHR(false), 2500);
     }
   };
 
@@ -741,6 +785,19 @@ export function SalarySlipAuditor({
                 >
                   <ChatIcon size={14} />
                   <span>Consult Assistant on this Slip</span>
+                </button>
+              )}
+
+              {reconciliation && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleCopyHRMemo}
+                  title="Copy a polite, formal tax audit inquiry note to send to your HR payroll division"
+                  style={{ flex: '1 1 180px', fontSize: '0.8125rem' }}
+                >
+                  {copiedHR ? <CheckIcon size={14} style={{ color: 'var(--color-semantic-deduction)' }} /> : <CopyIcon size={14} />}
+                  <span>{copiedHR ? 'Copied HR Note!' : 'Copy Audit Note for HR'}</span>
                 </button>
               )}
 

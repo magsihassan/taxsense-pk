@@ -115,6 +115,12 @@ body {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
+@media (min-width: 1025px) {
+  .workspace-tab-nav {
+    display: none;
+  }
+}
+
 @media (max-width: 768px) {
   .workspace-tab-nav {
     flex-direction: column;
@@ -599,6 +605,12 @@ body {
   gap: 3px;
 }
 
+@media (max-width: 1024px) {
+  .header-nav-tabs {
+    display: none;
+  }
+}
+
 .header-nav-tab {
   display: inline-flex;
   align-items: center;
@@ -808,7 +820,6 @@ body {
 .callout-ochre-statutory {
   background: var(--color-accent-soft);
   border: 1px solid #D8C388;
-  border-left: 3px solid var(--color-accent);
   border-radius: var(--radius-sm);
   padding: 16px 18px;
   display: flex;
@@ -853,7 +864,6 @@ body {
 .callout-reconciled-calm {
   background: var(--color-primary-surface);
   border: 1px solid #C0E3CF;
-  border-left: 3px solid var(--color-semantic-deduction);
   border-radius: var(--radius-sm);
   padding: 16px 18px;
   display: flex;
