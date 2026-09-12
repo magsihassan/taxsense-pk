@@ -16,3 +16,4 @@ pytesseract
 pillow 
 pdf2image 
 pypdf
+python-multipart

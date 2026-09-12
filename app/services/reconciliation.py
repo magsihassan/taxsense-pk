@@ -4,7 +4,10 @@ uploaded slip) against the correct tax owed (from our deterministic
 calculator), and flags meaningful mismatches.
 """
 
-from app.services.tax_calculator import calculate_tax
+try:
+    from app.services.tax_calculator import calculate_tax
+except ImportError:
+    from tax_calculator import calculate_tax
 
 # If withholding differs from correct tax by more than this percentage,
 # flag it as a mismatch worth the user's attention. Small differences are

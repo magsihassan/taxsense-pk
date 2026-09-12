@@ -8,6 +8,7 @@ export function CalculatorLedger({
   taxYear,
   setTaxYear,
   onSendToAssistant,
+  onNavigateToSalarySlip,
 }) {
   const [inputMode, setInputMode] = useState('annual'); // 'annual' | 'monthly'
   const [activeTooltip, setActiveTooltip] = useState(null);
@@ -247,6 +248,45 @@ ${calc.hasSurcharge ? `Includes 9% Surcharge of PKR ${calc.surcharge.toLocaleStr
               </button>
             ))}
           </div>
+
+          {onNavigateToSalarySlip && (
+            <div style={{
+              marginTop: '12px',
+              padding: '8px 12px',
+              background: 'var(--color-primary-surface)',
+              border: '1px solid var(--color-neutral-border)',
+              borderRadius: 'var(--radius-xs)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '8px',
+            }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-primary)', fontWeight: 500 }}>
+                Have an official salary slip PDF or image?
+              </span>
+              <button
+                type="button"
+                onClick={onNavigateToSalarySlip}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--color-primary)',
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  textDecoration: 'underline',
+                  padding: 0,
+                }}
+              >
+                <span>Audit Withholding via OCR</span>
+                <ChevronRightIcon size={12} />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* 4-Part Summary KPI Card + Delightful Take-Home Spotlight */}

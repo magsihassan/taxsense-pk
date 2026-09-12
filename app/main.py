@@ -1,8 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import chat, tax
-
+from app.routes import salary_slip
 app = FastAPI(title="TaxSense PK API")
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -14,7 +15,7 @@ app.add_middleware(
 
 app.include_router(chat.router)
 app.include_router(tax.router)
-
+app.include_router(salary_slip.router)
 
 @app.get("/")
 async def root():

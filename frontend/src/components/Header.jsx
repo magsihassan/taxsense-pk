@@ -1,7 +1,13 @@
 import React from 'react';
-import { ShieldIcon, RefreshIcon } from './Icons';
+import { ShieldIcon, RefreshIcon, CalculatorIcon, FileTextIcon } from './Icons';
 
-export function Header({ taxYear, setTaxYear, onResetAll, apiStatus = 'connected' }) {
+export function Header({
+  taxYear,
+  setTaxYear,
+  activeView = 'calculator',
+  setActiveView,
+  onResetAll,
+}) {
   return (
     <header className="app-header">
       <div className="header-inner">
@@ -24,6 +30,31 @@ export function Header({ taxYear, setTaxYear, onResetAll, apiStatus = 'connected
             </p>
           </div>
         </div>
+
+        {/* View Mode Navigation Switcher */}
+        {setActiveView && (
+          <nav className="header-nav-tabs" aria-label="Main Navigation">
+            <button
+              type="button"
+              className={`header-nav-tab ${activeView === 'calculator' ? 'active' : ''}`}
+              onClick={() => setActiveView('calculator')}
+            >
+              <CalculatorIcon size={15} />
+              <span>Tax Calculator</span>
+            </button>
+            <button
+              type="button"
+              className={`header-nav-tab ${activeView === 'salary-slip' ? 'active' : ''}`}
+              onClick={() => setActiveView('salary-slip')}
+            >
+              <FileTextIcon size={15} />
+              <span>Salary Slip Audit</span>
+              <span className="badge badge-ochre" style={{ fontSize: '0.5625rem', padding: '1px 5px' }}>
+                OCR
+              </span>
+            </button>
+          </nav>
+        )}
 
         {/* Action & Tax Year Controls */}
         <div className="header-actions">
@@ -77,3 +108,4 @@ export function Header({ taxYear, setTaxYear, onResetAll, apiStatus = 'connected
     </header>
   );
 }
+

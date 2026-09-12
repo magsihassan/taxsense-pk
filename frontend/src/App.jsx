@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Header } from './components/Header';
 import { CalculatorLedger } from './components/CalculatorLedger';
+import { SalarySlipAuditor } from './components/SalarySlipAuditor';
 import { ChatAssistant } from './components/ChatAssistant';
-import { CalculatorIcon, ChatIcon, ShieldIcon } from './components/Icons';
+import { CalculatorIcon, ChatIcon, FileTextIcon, ShieldIcon } from './components/Icons';
 
 export function App() {
   const [taxYear, setTaxYear] = useState('2025-26');
   const [annualIncome, setAnnualIncome] = useState(2400000);
-  const [activeMobileTab, setActiveMobileTab] = useState('calculator'); // 'calculator' | 'assistant'
+  const [activeView, setActiveView] = useState('calculator'); // 'calculator' | 'salary-slip'
+  const [activeMobileTab, setActiveMobileTab] = useState('calculator'); // 'calculator' | 'salary-slip' | 'assistant'
   const [externalPrompt, setExternalPrompt] = useState(null);
 
   const handleResetAll = () => {
@@ -21,12 +23,26 @@ export function App() {
     setActiveMobileTab('assistant');
   };
 
+  const handleLoadIntoCalculator = (annualGross) => {
+    setAnnualIncome(annualGross);
+    setActiveView('calculator');
+    setActiveMobileTab('calculator');
+  };
+
+  // Keep mobile tab and desktop activeView aligned when switched from header
+  const handleSelectView = (view) => {
+    setActiveView(view);
+    setActiveMobileTab(view);
+  };
+
   return (
     <div className="app-shell">
       {/* Top Institutional Header */}
       <Header
         taxYear={taxYear}
         setTaxYear={setTaxYear}
+        activeView={activeView}
+        setActiveView={handleSelectView}
         onResetAll={handleResetAll}
       />
 
@@ -37,10 +53,24 @@ export function App() {
           <button
             type="button"
             className={`mobile-tab-btn ${activeMobileTab === 'calculator' ? 'active' : ''}`}
-            onClick={() => setActiveMobileTab('calculator')}
+            onClick={() => {
+              setActiveMobileTab('calculator');
+              setActiveView('calculator');
+            }}
           >
             <CalculatorIcon size={16} />
-            <span>Tax Calculator</span>
+            <span>Calculator</span>
+          </button>
+          <button
+            type="button"
+            className={`mobile-tab-btn ${activeMobileTab === 'salary-slip' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveMobileTab('salary-slip');
+              setActiveView('salary-slip');
+            }}
+          >
+            <FileTextIcon size={16} />
+            <span>Salary Slip</span>
           </button>
           <button
             type="button"
@@ -48,19 +78,29 @@ export function App() {
             onClick={() => setActiveMobileTab('assistant')}
           >
             <ChatIcon size={16} />
-            <span>Statutory Assistant</span>
+            <span>Assistant</span>
           </button>
         </div>
 
-        {/* Left Cockpit: Calculator Ledger */}
-        <div className={`cockpit-column ${activeMobileTab === 'calculator' ? 'active-tab' : ''}`}>
-          <CalculatorLedger
-            annualIncome={annualIncome}
-            setAnnualIncome={setAnnualIncome}
-            taxYear={taxYear}
-            setTaxYear={setTaxYear}
-            onSendToAssistant={handleSendToAssistant}
-          />
+        {/* Left Cockpit: Calculator Ledger OR Salary Slip Auditor */}
+        <div className={`cockpit-column ${(activeMobileTab === 'calculator' || activeMobileTab === 'salary-slip') ? 'active-tab' : ''}`}>
+          {activeView === 'calculator' ? (
+            <CalculatorLedger
+              annualIncome={annualIncome}
+              setAnnualIncome={setAnnualIncome}
+              taxYear={taxYear}
+              setTaxYear={setTaxYear}
+              onSendToAssistant={handleSendToAssistant}
+              onNavigateToSalarySlip={() => handleSelectView('salary-slip')}
+            />
+          ) : (
+            <SalarySlipAuditor
+              taxYear={taxYear}
+              setTaxYear={setTaxYear}
+              onLoadIntoCalculator={handleLoadIntoCalculator}
+              onSendToAssistant={handleSendToAssistant}
+            />
+          )}
         </div>
 
         {/* Right Cockpit: Conversational Chat Assistant */}
@@ -72,6 +112,7 @@ export function App() {
           />
         </div>
       </main>
+
 
       {/* Institutional Legal Footer */}
       <footer style={{
