@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 import uuid
+import asyncio
 from app.services.tax_agent import get_vectorstore, build_agent
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -21,6 +22,11 @@ def get_agent():
         _vectorstore = get_vectorstore()
         _agent = build_agent(_vectorstore)
     return _agent
+
+
+def warm_up_agent():
+    """Called on server startup to eliminate cold-start latency for user requests."""
+    return get_agent()
 
 
 class ChatRequest(BaseModel):
@@ -49,7 +55,7 @@ async def chat(request: ChatRequest):
     agent = get_agent()
 
     try:
-        result = agent.invoke({"messages": history})
+        result = await asyncio.to_thread(agent.invoke, {"messages": history})
         final_message = result["messages"][-1].content
 
         history.append({"role": "assistant", "content": final_message})

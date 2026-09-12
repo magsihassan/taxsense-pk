@@ -27,7 +27,7 @@ except ImportError:
 INDEX_NAME = "tax-assistant"
 EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 LLM_MODEL = "openai/gpt-oss-120b"
-TOP_K = 8
+TOP_K = 3
 
 
 def get_vectorstore():
@@ -46,14 +46,15 @@ def build_tools(vectorstore):
         """Search the official FBR tax documents (Income Tax Ordinance 2001,
         Finance Act 2026, filing guides) for qualitative information such as
         deadlines, filing requirements, wealth statement rules, definitions,
-        and procedures. Do NOT use this for calculating tax amounts — use
-        calculate_income_tax for that instead."""
+        and procedures. Call this tool AT MOST ONCE per user question. Do NOT
+        use this for calculating tax amounts — use calculate_income_tax for that."""
         docs = retriever.invoke(query)
         formatted = []
         for doc in docs:
-            source = doc.metadata.get("source", "unknown")
+            source = doc.metadata.get("source", "Income Tax Ordinance 2001")
             page = doc.metadata.get("page", "?")
-            formatted.append(f"[Source: {source}, page {page}]\n{doc.page_content}")
+            content = doc.page_content.strip()[:1000]
+            formatted.append(f"[Source: {source}, page {page}]\n{content}")
         return "\n\n---\n\n".join(formatted)
 
     @tool
@@ -77,21 +78,20 @@ def build_tools(vectorstore):
     return [search_tax_documents, calculate_income_tax]
 
 
-SYSTEM_PROMPT = """You are TaxSense PK, an assistant that helps salaried individuals in Pakistan \
-understand and calculate their income tax obligations.
+SYSTEM_PROMPT = """You are TaxSense PK, an authoritative statutory advisory assistant for Pakistani salaried income tax rules.
+
+Core Statutory Knowledge:
+- Tax Year 2025-26: Covers July 1, 2025 to June 30, 2026. Annual return and wealth statement filing deadline is September 30, 2026 (Section 118(2)(b) of Income Tax Ordinance 2001).
+- Tax Year 2026-27: Covers July 1, 2026 to June 30, 2027. Filing deadline is September 30, 2027.
+- Wealth Statement (Section 116): Mandatory to file alongside the annual income tax return for individuals filing returns or as notified by FBR.
+- Salary Tax Withholding (Section 149): Employers deduct tax in 12 monthly installments based on expected annual taxable income.
 
 Rules:
-- For questions about tax LAW, RULES, DEADLINES, or REQUIREMENTS: use the \
-search_tax_documents tool and answer only from what it returns, citing the source.
-- For questions that require CALCULATING a tax amount: use the \
-calculate_income_tax tool. Never compute tax math yourself — always call the tool.
-- If the tax year isn't specified by the user, ask them to clarify between \
-"2025-26" (currently being filed) and "2026-27" (current ongoing year), or \
-state clearly which one you're assuming and why.
-- If information isn't available from your tools, say so clearly instead of \
-guessing.
-- This is an informational tool, not tax advice. Always remind the user to \
-verify with a tax consultant or FBR directly for their specific situation.
+- For questions about tax LAW, RULES, DEADLINES, or REQUIREMENTS: Call search_tax_documents AT MOST ONCE to fetch official text, then formulate your final answer. Do NOT invoke search_tax_documents in a repetitive loop.
+- For questions that require CALCULATING a tax amount: use the calculate_income_tax tool. Never compute tax math yourself.
+- Always cite the statutory source (e.g. Section 118, Section 116, Income Tax Ordinance 2001, Finance Act 2026).
+- If information isn't fully available in the retrieved text, state what is established by the Ordinance clearly and advise verification via the FBR Iris portal.
+- This is an informational tool, not tax advice. Always remind the user to verify with a licensed tax consultant or FBR directly for their specific circumstances.
 """
 
 

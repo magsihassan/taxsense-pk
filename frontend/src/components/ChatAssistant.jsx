@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChatIcon, SendIcon, CitationIcon, RefreshIcon, AlertCircleIcon, ShieldIcon } from './Icons';
 
 const MAX_INPUT_CHARS = 2000;
-const REQUEST_TIMEOUT_MS = 30000; // 30s timeout
+const REQUEST_TIMEOUT_MS = 60000; // 60s timeout
 
 export function ChatAssistant({
   externalPrompt,
@@ -126,7 +126,7 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
 
       let friendlyMessage = `Unable to connect to the statutory advisory service. Please ensure the Python backend server is running on port 8000.\n\n*Technical Detail: ${err.message}*`;
       if (err.name === 'AbortError') {
-        friendlyMessage = 'The request timed out after 30 seconds. The advisory agent took too long to retrieve and generate a response. Please check your server and try again.';
+        friendlyMessage = `The request timed out after ${Math.round(REQUEST_TIMEOUT_MS / 1000)} seconds. The advisory agent took too long to retrieve and generate a response. Please check your server and try again.`;
       }
 
       setError(err.message || 'Connection failed.');
