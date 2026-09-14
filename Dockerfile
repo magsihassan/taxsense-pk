@@ -26,7 +26,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # Copy backend application code
 COPY app/ ./app/
-COPY data/ ./data/
+
 
 # Railway dynamically provides $PORT at runtime
 EXPOSE ${PORT}
