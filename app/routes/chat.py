@@ -40,7 +40,9 @@ class ChatResponse(BaseModel):
 
 
 @router.post("", response_model=ChatResponse)
+@router.post("/", response_model=ChatResponse)
 async def chat(request: ChatRequest):
+
     if not request.message or not request.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
