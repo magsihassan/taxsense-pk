@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatIcon, SendIcon, CitationIcon, RefreshIcon, AlertCircleIcon, ShieldIcon } from './Icons';
+import { apiUrl } from '../utils/api';
 
 const MAX_INPUT_CHARS = 2000;
 const REQUEST_TIMEOUT_MS = 60000; // 60s timeout
+
 
 export function ChatAssistant({
   externalPrompt,
@@ -91,8 +93,9 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
     }, REQUEST_TIMEOUT_MS);
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetch(apiUrl('/api/chat'), {
         method: 'POST',
+
         headers: {
           'Content-Type': 'application/json',
         },
@@ -147,8 +150,9 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
 
   const handleClearHistory = async () => {
     try {
-      await fetch(`/api/chat/${sessionId}`, { method: 'DELETE' });
+      await fetch(apiUrl(`/api/chat/${sessionId}`), { method: 'DELETE' });
     } catch (e) {
+
       // Non-blocking cleanup
     }
     const newSession = 'session_' + Math.random().toString(36).substring(2, 10);

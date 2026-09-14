@@ -13,8 +13,10 @@ import {
   CopyIcon,
   CheckIcon,
 } from './Icons';
+import { apiUrl } from '../utils/api';
 
 const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
+
 const MAX_FILE_SIZE_MB = 10;
 
 export function SalarySlipAuditor({
@@ -122,8 +124,9 @@ export function SalarySlipAuditor({
     formData.append('tax_year', taxYear);
 
     try {
-      const response = await fetch('/api/salary-slip/analyze', {
+      const response = await fetch(apiUrl('/api/salary-slip/analyze'), {
         method: 'POST',
+
         body: formData,
       });
 
