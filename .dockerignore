@@ -1,0 +1,27 @@
+# Version control
+.git
+.gitignore
+
+# Environment files and credentials
+.env
+.env.*
+*.env
+
+# Python virtual environment and caches
+.venv
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Frontend artifacts
+frontend/
+node_modules/
+
+# IDE & temporary files
+.gemini/
+.agent/
+.impeccable/
+scratch/

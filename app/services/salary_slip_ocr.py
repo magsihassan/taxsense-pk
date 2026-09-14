@@ -12,12 +12,23 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 load_dotenv(PROJECT_ROOT / ".env")
 load_dotenv()
 
-# --- Windows-specific paths — update these to match your install locations ---
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-POPPLER_PATH = r"C:\path\to\poppler-xx\Library\bin"  # update this
+import platform
+import shutil
+
+# --- Cross-platform Tesseract & Poppler setup ---
+if platform.system() == "Windows":
+    win_tesseract = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+    if os.path.exists(win_tesseract):
+        pytesseract.pytesseract.tesseract_cmd = win_tesseract
+    POPPLER_PATH = os.getenv("POPPLER_PATH", r"C:\path\to\poppler-xx\Library\bin")
+else:
+    # Linux (Railway / Docker / Cloud): uses system binaries in PATH
+    pytesseract.pytesseract.tesseract_cmd = shutil.which("tesseract") or "tesseract"
+    POPPLER_PATH = os.getenv("POPPLER_PATH", None)
 
 LLM_MODEL = "openai/gpt-oss-120b"
 CONFIDENCE_LEVELS = {"high": 3, "medium": 2, "low": 1}
+
 
 
 def preprocess_image(image: Image.Image) -> Image.Image:
@@ -55,11 +66,16 @@ def extract_text_from_pdf(pdf_path: str, preprocess: bool = False) -> str:
     if len(direct_text.strip()) > 50 and not preprocess:
         return direct_text
 
-    images = convert_from_path(pdf_path, poppler_path=POPPLER_PATH)
+    poppler_kwargs = {}
+    if POPPLER_PATH and os.path.exists(POPPLER_PATH):
+        poppler_kwargs["poppler_path"] = POPPLER_PATH
+
+    images = convert_from_path(pdf_path, **poppler_kwargs)
     if preprocess:
         images = [preprocess_image(img) for img in images]
     ocr_text = "\n".join(pytesseract.image_to_string(img) for img in images)
     return ocr_text
+
 
 
 def extract_raw_text(file_path: str, preprocess: bool = False) -> str:
