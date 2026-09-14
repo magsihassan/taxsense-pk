@@ -14,9 +14,14 @@ export function Header({
         {/* Brand Mark */}
         <div className="header-brand">
           <div className="header-brand-icon">
-            <ShieldIcon size={22} />
+            <img
+              src="/logo-white.png"
+              alt="TaxSense PK"
+              style={{ width: '24px', height: '24px', objectFit: 'contain' }}
+            />
           </div>
           <div>
+
             <div className="header-title-row">
               <h1 className="header-title">
                 TaxSense PK
