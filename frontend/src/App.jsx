@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { ChatAssistant } from './components/ChatAssistant';
 import { SalarySlipAuditor } from './components/SalarySlipAuditor';
 import { CalculatorLedger } from './components/CalculatorLedger';
+import { TermsModal } from './components/TermsModal';
 import { ChatIcon, FileTextIcon, CalculatorIcon, ShieldIcon } from './components/Icons';
+
+const TERMS_STORAGE_KEY = 'taxsense_pk_terms_accepted_v1';
 
 export function App() {
   const [taxYear, setTaxYear] = useState('2025-26');
@@ -11,6 +14,45 @@ export function App() {
   // Default first tab is Statutory Advisory Assistant as requested
   const [activeTab, setActiveTab] = useState('assistant'); // 'assistant' | 'salary-slip' | 'calculator'
   const [externalPrompt, setExternalPrompt] = useState(null);
+
+  // Terms of Use & Disclaimer modal state: first thing when site opens
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [isFirstTimeTerms, setIsFirstTimeTerms] = useState(false);
+  const [termsAcceptedAt, setTermsAcceptedAt] = useState(null);
+
+  useEffect(() => {
+    try {
+      const storedAcceptance = localStorage.getItem(TERMS_STORAGE_KEY);
+      if (!storedAcceptance) {
+        // First-time visit: immediate modal before any interaction
+        setShowTermsModal(true);
+        setIsFirstTimeTerms(true);
+      } else {
+        setTermsAcceptedAt(storedAcceptance);
+      }
+    } catch (e) {
+      // In case localStorage is disabled/restricted in the environment
+      setShowTermsModal(true);
+      setIsFirstTimeTerms(true);
+    }
+  }, []);
+
+  const handleAcceptTerms = () => {
+    const timestamp = new Date().toISOString();
+    try {
+      localStorage.setItem(TERMS_STORAGE_KEY, timestamp);
+    } catch (e) {
+      console.warn('Could not persist terms acceptance in localStorage:', e);
+    }
+    setTermsAcceptedAt(timestamp);
+    setShowTermsModal(false);
+    setIsFirstTimeTerms(false);
+  };
+
+  const handleOpenTerms = () => {
+    setIsFirstTimeTerms(false);
+    setShowTermsModal(true);
+  };
 
   const handleResetAll = () => {
     setAnnualIncome(2400000);
@@ -31,6 +73,7 @@ export function App() {
 
   return (
     <div className="app-shell">
+
       {/* Top Institutional Header */}
       <Header
         taxYear={taxYear}
@@ -134,12 +177,42 @@ export function App() {
             <ShieldIcon size={14} />
             <span>TaxSense PK · Salaried Individual Tax System (FBR Ordinance 2001 & Finance Act 2026)</span>
           </div>
-          <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <span>Statutory Disclaimer: Informational calculation & advisory tool. Not a substitute for official FBR Iris filing or legal counsel.</span>
+            <button
+              type="button"
+              onClick={handleOpenTerms}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--color-primary)',
+                textDecoration: 'underline',
+                textUnderlineOffset: '2px',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                fontFamily: 'inherit',
+                padding: '2px 4px',
+                borderRadius: 'var(--radius-xs)',
+              }}
+              title="Review the complete Terms of Use & Statutory Disclaimer"
+            >
+              Terms & Disclaimer
+            </button>
           </div>
         </div>
       </footer>
+
+      {/* Mandatory / Informational Terms of Use & Disclaimer Modal */}
+      <TermsModal
+        isOpen={showTermsModal}
+        onAccept={handleAcceptTerms}
+        onClose={() => setShowTermsModal(false)}
+        isFirstTime={isFirstTimeTerms}
+        acceptedAt={termsAcceptedAt}
+      />
     </div>
+
   );
 }
 
