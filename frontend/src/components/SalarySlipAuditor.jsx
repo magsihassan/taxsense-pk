@@ -526,6 +526,92 @@ Generated via TaxSense PK Statutory Ledger`;
               </div>
             </div>
 
+            {/* Low Confidence / Manual Verification Notice */}
+            {(extraction.status === 'low_confidence' || extraction.extraction_confidence === 'low') && (
+              <div style={{
+                background: '#FEF3F2',
+                border: '1px solid #FECDCA',
+                borderRadius: 'var(--radius-sm)',
+                padding: '14px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '0.6875rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    color: '#B42318',
+                    letterSpacing: '0.04em',
+                  }}>
+                    <AlertTriangleIcon size={14} />
+                    <span>Low OCR Confidence · Manual Review Required</span>
+                  </span>
+                  {extraction._ocr_pass && (
+                    <span style={{
+                      fontSize: '0.6875rem',
+                      fontFamily: 'var(--font-mono)',
+                      color: '#B42318',
+                    }}>
+                      Pass: {extraction._ocr_pass}
+                    </span>
+                  )}
+                </div>
+                <p style={{
+                  fontSize: '0.8125rem',
+                  lineHeight: 1.5,
+                  color: '#7A271A',
+                  margin: 0,
+                }}>
+                  {extraction.message || "This document couldn't be read reliably due to image angle, contrast, or camera blur. Please verify any extracted figures or calculate your tax manually."}
+                </p>
+                {onLoadIntoCalculator && (
+                  <div style={{ marginTop: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={() => onLoadIntoCalculator({
+                        grossSalary: extraction.gross_salary || 0,
+                        taxWithheld: extraction.income_tax_deducted || 0,
+                      })}
+                      className="btn-secondary"
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '0.75rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: '#FFF',
+                        borderColor: '#FDA29B',
+                        color: '#912018',
+                      }}
+                    >
+                      <CalculatorIcon size={13} />
+                      <span>Switch to Manual Calculator</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Incomplete Reconciliation Notice */}
+            {reconciliation && reconciliation.status === 'incomplete' && extraction.status !== 'low_confidence' && extraction.extraction_confidence !== 'low' && (
+              <div style={{
+                background: 'var(--color-accent-soft)',
+                border: '1px solid #D8C388',
+                borderRadius: 'var(--radius-sm)',
+                padding: '12px 16px',
+              }}>
+                <p style={{ margin: 0, fontSize: '0.8125rem', color: '#593E02', lineHeight: 1.5 }}>
+                  {reconciliation.message}
+                </p>
+              </div>
+            )}
+
             {/* Reconciliation Verdict Callout */}
             {reconciliation && reconciliation.status === 'reconciled' && (
               <>

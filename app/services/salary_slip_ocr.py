@@ -3,7 +3,8 @@ import json
 from pathlib import Path
 from dotenv import load_dotenv
 import pytesseract
-from PIL import Image, ImageEnhance, ImageFilter
+import numpy as np
+from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 from pdf2image import convert_from_path
 from pypdf import PdfReader
 from langchain_groq import ChatGroq
@@ -31,26 +32,95 @@ CONFIDENCE_LEVELS = {"high": 3, "medium": 2, "low": 1}
 
 
 
+def normalize_and_preprocess_image(image: Image.Image, retry_mode: bool = False) -> Image.Image:
+    """
+    Preprocess image for high OCR accuracy on smartphone camera photos, screen captures, and scans:
+    1. EXIF auto-rotation (ensures phone photo isn't sideways).
+    2. Auto-crop dark borders / desk backgrounds if document is centered on a surface.
+    3. Rescale to optimal OCR resolution (1800px standard, or 1250px bilinear for screen photos).
+    4. Grayscale conversion and balanced contrast boost (without sharpen, which causes moiré grid hangs).
+    """
+    try:
+        image = ImageOps.exif_transpose(image) or image
+    except Exception:
+        pass
+
+    # 1. Detect and crop dark desk background around a lighter page if present
+    w, h = image.size
+    try:
+        gray_arr = np.array(image.convert("L"))
+        corner_sample = float(np.mean([
+            gray_arr[:max(1, int(h * 0.05)), :max(1, int(w * 0.05))],
+            gray_arr[:max(1, int(h * 0.05)), -max(1, int(w * 0.05)):],
+            gray_arr[-max(1, int(h * 0.05)):, :max(1, int(w * 0.05))],
+            gray_arr[-max(1, int(h * 0.05)):, -max(1, int(w * 0.05)):],
+        ]))
+        center_sample = float(np.mean(gray_arr[int(h * 0.25):int(h * 0.75), int(w * 0.25):int(w * 0.75)]))
+
+        cropped = image
+        # If corners are dark (< 100) and center is bright (> 140), crop the desk background
+        if corner_sample < 100 and center_sample > 140:
+            mask = gray_arr > 90
+            rows = np.any(mask, axis=1)
+            cols = np.any(mask, axis=0)
+            if np.any(rows) and np.any(cols):
+                rmin, rmax = np.where(rows)[0][[0, -1]]
+                cmin, cmax = np.where(cols)[0][[0, -1]]
+                cropped = image.crop((cmin, rmin, cmax, rmax))
+    except Exception:
+        cropped = image
+
+    # 2. Rescale: standard paper slips use ~1800px; retry / screen moiré uses ~1200px
+    cw, ch = cropped.size
+    target_w = 1200 if retry_mode else 1800
+    resample_method = Image.Resampling.BILINEAR if retry_mode else Image.Resampling.LANCZOS
+
+    scale = target_w / cw
+    resized = cropped.resize((target_w, int(ch * scale)), resample_method)
+
+    # 3. Grayscale and moderate contrast (avoid ImageFilter.SHARPEN which blows up screen moiré lines)
+    gray = resized.convert("L")
+    contrast_factor = 1.2 if retry_mode else 1.35
+    enhanced = ImageEnhance.Contrast(gray).enhance(contrast_factor)
+
+    return enhanced
+
+
 def preprocess_image(image: Image.Image) -> Image.Image:
-    """
-    Basic image enhancement to improve OCR accuracy on the retry pass:
-    grayscale, contrast boost, and slight sharpening. Cheap to run, often
-    meaningfully improves results on photographed (not scanned) documents.
-    """
-    gray = image.convert("L")
-    enhancer = ImageEnhance.Contrast(gray)
-    enhanced = enhancer.enhance(2.0)
-    sharpened = enhanced.filter(ImageFilter.SHARPEN)
-    return sharpened
+    """Wrapper for image preprocessing in retry pass."""
+    return normalize_and_preprocess_image(image, retry_mode=True)
 
 
 def extract_text_from_image(image_path: str, preprocess: bool = False) -> str:
-    """OCR a single image file. If preprocess=True, applies enhancement first
-    (used on the retry pass after a low-confidence first attempt)."""
+    """
+    OCR a single image file with fast dual-pass strategy:
+    Pass 1: PSM 6 at 1800px Lanczos (ideal for standard paper slips).
+    Pass 2: PSM 4 at 1250px Bilinear (ideal for monitor/screen photos with moiré patterns).
+    """
     image = Image.open(image_path)
-    if preprocess:
-        image = preprocess_image(image)
-    text = pytesseract.image_to_string(image)
+    processed = normalize_and_preprocess_image(image, retry_mode=preprocess)
+    
+    psm_mode = 4 if preprocess else 6
+    text = pytesseract.image_to_string(processed, config=f"--psm {psm_mode}").strip()
+    
+    digits_count = sum(c.isdigit() for c in text)
+    # If text is long AND has enough digits to contain salary figures, return it
+    if len(text) > 300 and digits_count >= 8:
+        return text
+
+    # If first pass extracted sparse text or missed numbers, try alternate mode (1250px Bilinear PSM 4)
+    alt_mode = 6 if psm_mode == 4 else 4
+    alt_processed = normalize_and_preprocess_image(image, retry_mode=True)
+    alt_text = pytesseract.image_to_string(alt_processed, config=f"--psm {alt_mode}").strip()
+
+    alt_digits = sum(c.isdigit() for c in alt_text)
+    # Prefer the output that actually found numbers
+    score_orig = len(text) + 20 * digits_count
+    score_alt = len(alt_text) + 20 * alt_digits
+
+    if score_alt > score_orig:
+        return alt_text
+
     return text
 
 
@@ -93,7 +163,16 @@ FIELD_EXTRACTION_PROMPT = """You are extracting structured data from OCR'd text 
 The OCR text may contain errors, misaligned spacing, or garbled characters — do your best to
 interpret it despite noise.
 
-Extract the following fields. If a field is not present or unclear, use null.
+Key Pakistani Payroll & Tax Conventions:
+- Gross Salary / Gross Pay = Basic Pay + Allowances (House Rent, Medical, Utilities, Conveyance, etc.)
+- Deductions: Includes statutory Withholding Tax / Income Tax, Provident Fund (PF), and EOBI.
+- Net Salary / Net Take-Home Pay = Gross Salary minus Total Deductions.
+- If deduction and net pay numbers appear under or after Gross Pay (for example: `25,000`, `18,000`, `239,000` after `Gross Pay 282,000` where 282,000 - 25,000 - 18,000 = 239,000), interpret them:
+  * The statutory tax deduction is income_tax_deducted (e.g. 25000).
+  * Voluntary or pension deductions (such as Provident Fund, EOBI) are other_deductions (e.g. 18000).
+  * The bottom net take-home figure is net_salary (e.g. 239000).
+
+Extract the following fields. If a field is not present or cannot be inferred, use null.
 
 Return ONLY valid JSON in this exact structure, nothing else:
 {{
@@ -109,10 +188,7 @@ Return ONLY valid JSON in this exact structure, nothing else:
   "extraction_confidence": "high" | "medium" | "low"
 }}
 
-Set extraction_confidence to "low" if the OCR text looks garbled, mostly nonsensical,
-or key fields were ambiguous/unreadable. Set "medium" if some fields are unclear but
-most are readable. Set "high" only if the text is clean and fields are unambiguous.
-Do not guess numbers you cannot find — use null instead.
+Set extraction_confidence to "low" if key salary figures (gross salary, tax) are missing or completely unreadable. Set "medium" if core figures are present even if minor fields are omitted. Set "high" only if the document is clear and unambiguous.
 
 OCR TEXT:
 {ocr_text}
@@ -132,13 +208,54 @@ def extract_fields(ocr_text: str) -> dict:
             content = content[4:]
 
     try:
-        return json.loads(content.strip())
+        data = json.loads(content.strip())
+        if isinstance(data, dict):
+            # Compute allowances total if not explicitly provided
+            if data.get("allowances_total") is None and data.get("gross_salary") is not None and data.get("basic_salary") is not None:
+                diff = data["gross_salary"] - data["basic_salary"]
+                if diff > 0:
+                    data["allowances_total"] = diff
+
+            # Compute net salary if not explicitly provided or extracted
+            if data.get("net_salary") is None and data.get("gross_salary") is not None and data.get("income_tax_deducted") is not None:
+                other = data.get("other_deductions") or 0
+                data["net_salary"] = data["gross_salary"] - data["income_tax_deducted"] - other
+
+            # Compute tax deducted if net and other deductions are present
+            if data.get("income_tax_deducted") is None and data.get("gross_salary") is not None and data.get("net_salary") is not None:
+                tot_ded = data["gross_salary"] - data["net_salary"]
+                other = data.get("other_deductions") or 0
+                if tot_ded > other:
+                    data["income_tax_deducted"] = tot_ded - other
+
+        return data
     except json.JSONDecodeError:
         return {
             "error": "Failed to parse LLM response as JSON",
             "raw_response": content,
             "extraction_confidence": "low",
         }
+
+
+
+CRITICAL_FIELDS = ["gross_salary", "income_tax_deducted", "net_salary"]
+
+
+def validate_confidence(fields: dict) -> str:
+    """
+    Don't fully trust the LLM's self-reported confidence — verify it against
+    how many critical fields actually came back populated. A mostly-empty
+    extraction should never be rated above 'low', regardless of what the
+    model claims.
+    """
+    llm_confidence = fields.get("extraction_confidence", "low")
+    missing_critical = sum(1 for f in CRITICAL_FIELDS if fields.get(f) is None)
+
+    if missing_critical >= 2:
+        return "low"
+    elif missing_critical == 1:
+        return "medium" if llm_confidence == "high" else llm_confidence
+    return llm_confidence
 
 
 def process_salary_slip(file_path: str) -> dict:
@@ -159,22 +276,33 @@ def process_salary_slip(file_path: str) -> dict:
         }
 
     fields = extract_fields(raw_text)
-    confidence = fields.get("extraction_confidence", "low")
+    fields["extraction_confidence"] = validate_confidence(fields)
+    confidence = fields["extraction_confidence"]
 
     if confidence == "low":
         print("Low confidence on first pass — retrying with image preprocessing...")
         raw_text_retry = extract_raw_text(file_path, preprocess=True)
         fields_retry = extract_fields(raw_text_retry)
-        retry_confidence = fields_retry.get("extraction_confidence", "low")
+        fields_retry["extraction_confidence"] = validate_confidence(fields_retry)
+        retry_confidence = fields_retry["extraction_confidence"]
 
-        if CONFIDENCE_LEVELS.get(retry_confidence, 1) > CONFIDENCE_LEVELS.get(confidence, 1):
+        orig_fields_count = sum(1 for k, v in fields.items() if v is not None and not k.startswith("_"))
+        retry_fields_count = sum(1 for k, v in fields_retry.items() if v is not None and not k.startswith("_"))
+
+        # Prefer retry pass if confidence improved OR if retry recovered more valid fields
+        if (
+            CONFIDENCE_LEVELS.get(retry_confidence, 1) > CONFIDENCE_LEVELS.get(confidence, 1)
+            or retry_fields_count > orig_fields_count
+        ):
             fields = fields_retry
             confidence = retry_confidence
             fields["_ocr_pass"] = "preprocessed_retry"
+            fields["_raw_ocr_text"] = raw_text_retry
         else:
             fields["_ocr_pass"] = "original_failed_retry"
 
-    fields["_raw_ocr_text"] = raw_text
+    if "_raw_ocr_text" not in fields:
+        fields["_raw_ocr_text"] = raw_text
     fields["status"] = "success" if confidence != "low" else "low_confidence"
 
     if confidence == "low":
