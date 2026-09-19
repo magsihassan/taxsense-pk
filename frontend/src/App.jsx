@@ -156,45 +156,18 @@ export function App() {
 
 
       {/* Institutional Legal Footer */}
-      <footer style={{
-        marginTop: 'auto',
-        borderTop: '1px solid var(--color-neutral-border)',
-        background: 'var(--color-neutral-surface)',
-        padding: '16px var(--spacing-lg)',
-        fontSize: '0.75rem',
-        color: 'var(--color-neutral-muted)',
-      }}>
-        <div style={{
-          maxWidth: '1400px',
-          margin: '0 auto',
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '12px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <footer className="app-footer">
+        <div className="app-footer-inner">
+          <div className="app-footer-brand">
             <ShieldIcon size={14} />
             <span>TaxSense PK · Salaried Individual Tax System (FBR Ordinance 2001 & Finance Act 2026)</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          <div className="app-footer-legal">
             <span>Statutory Disclaimer: Informational calculation & advisory tool. Not a substitute for official FBR Iris filing or legal counsel.</span>
             <button
               type="button"
               onClick={handleOpenTerms}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--color-primary)',
-                textDecoration: 'underline',
-                textUnderlineOffset: '2px',
-                cursor: 'pointer',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                fontFamily: 'inherit',
-                padding: '2px 4px',
-                borderRadius: 'var(--radius-xs)',
-              }}
+              className="app-footer-link"
               title="Review the complete Terms of Use & Statutory Disclaimer"
             >
               Terms & Disclaimer
