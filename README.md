@@ -1,4 +1,4 @@
-<![CDATA[<div align="center">
+<div align="center">
 
 # TaxSense PK
 
@@ -247,4 +247,3 @@ TaxSense PK is an **informational tool only**. It is not affiliated with, endors
 This project is licensed under the [MIT License](LICENSE).
 
 Built as a portfolio and educational project by [Hassan Raza Mir](https://github.com/magsihassan).
-]]>
