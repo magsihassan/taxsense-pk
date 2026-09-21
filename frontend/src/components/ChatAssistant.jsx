@@ -1,10 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChatIcon, SendIcon, CitationIcon, RefreshIcon, AlertCircleIcon, ShieldIcon } from './Icons';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import {
+  ChatIcon,
+  SendIcon,
+  CitationIcon,
+  RefreshIcon,
+  AlertCircleIcon,
+  ShieldIcon,
+  CopyIcon,
+  CheckIcon,
+} from './Icons';
 import { apiUrl } from '../utils/api';
 
 const MAX_INPUT_CHARS = 2000;
 const REQUEST_TIMEOUT_MS = 60000; // 60s timeout
-
 
 export function ChatAssistant({
   externalPrompt,
@@ -14,15 +24,18 @@ export function ChatAssistant({
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: `Welcome to TaxSense PK. I provide authoritative guidance on Pakistani salaried income tax rules.
+      content: `### Welcome to TaxSense PK
 
-I can explain:
-• Official FBR tax slabs & calculation breakdowns
-• Filing deadlines & late-filing penalty regulations
-• Wealth statement requirements (Section 116)
-• Eligible tax credits, rebates, & monthly withholding certificates
+> **Authoritative Advisory:** Sourced directly from official provisions of the **Income Tax Ordinance 2001** and **Finance Act 2026**.
 
-All statutory answers cite official publications (Income Tax Ordinance 2001 and Finance Act 2026). How can I assist with your tax obligations today?`,
+I can assist salaried taxpayers with:
+
+- **FBR Slabs & Precise Calculations**: Instant tax computation for Tax Year 2025-26 and 2026-27.
+- **Wealth Statements (Section 116)**: Mandatory filing criteria, asset disclosures, and Form IR-6 requirements.
+- **Filing Deadlines & Penalties**: Section 118 statutory dates, late-filing penalties, and Active Taxpayer List (ATL) rules.
+- **Salary Withholding (Section 149)**: Employer monthly tax deduction verifications and allowable tax credit offsets.
+
+What tax obligations or provisions can I assist you with today?`,
     },
   ]);
 
@@ -34,6 +47,7 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
   });
   const [error, setError] = useState(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState(null);
 
   const messagesEndRef = useRef(null);
   const abortControllerRef = useRef(null);
@@ -152,7 +166,6 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
     try {
       await fetch(apiUrl(`/api/chat/${sessionId}`), { method: 'DELETE' });
     } catch (e) {
-
       // Non-blocking cleanup
     }
     const newSession = 'session_' + Math.random().toString(36).substring(2, 10);
@@ -160,9 +173,25 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
     setMessages([
       {
         role: 'assistant',
-        content: 'Conversation cleared. What questions do you have regarding your Pakistan income tax return or salary withholding?',
+        content: `### Conversation Cleared
+
+> Ready for a new inquiry.
+
+Ask any question regarding your Pakistan income tax return, Section 116 wealth statement requirements, or salary tax withholding.`,
       },
     ]);
+  };
+
+  const handleCopyMessage = async (content, index) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedIndex(index);
+      setTimeout(() => {
+        setCopiedIndex((prev) => (prev === index ? null : prev));
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy message:', err);
+    }
   };
 
   const suggestedQuestions = [
@@ -172,88 +201,75 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
     'How does employer tax withholding work on monthly salary?',
   ];
 
-  // Helper to parse statutory citation blocks if present in text
-  const renderMessageContent = (content) => {
-    const sourceRegex = /\[Source:\s*([^,\]]+)(?:,\s*page\s*([^\]]+))?\]/gi;
-    const parts = [];
-    let lastIndex = 0;
-    let match;
-
-    while ((match = sourceRegex.exec(content)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push({
-          type: 'text',
-          text: content.substring(lastIndex, match.index),
-        });
+  // Preprocess statutory citations like [Source: ITO 2001, page 12] into custom markdown links
+  const preprocessStatutoryMarkdown = (text) => {
+    if (!text) return '';
+    return text.replace(
+      /\[Source:\s*([^,\]]+)(?:,\s*(?:page|p\.)\s*([^\]]+))?\]/gi,
+      (match, source, page) => {
+        const cleanSource = (source || '').trim();
+        const cleanPage = (page || '').trim();
+        return `[cite:${cleanSource}|${cleanPage}](#statutory-citation)`;
       }
-      parts.push({
-        type: 'citation',
-        source: match[1]?.trim() || 'FBR Statutory Document',
-        page: match[2]?.trim() || null,
-        fullMatch: match[0],
-      });
-      lastIndex = match.index + match[0].length;
-    }
+    );
+  };
 
-    if (lastIndex < content.length) {
-      parts.push({
-        type: 'text',
-        text: content.substring(lastIndex),
-      });
-    }
-
-    if (parts.length <= 1) {
-      return (
-        <div style={{
-          whiteSpace: 'pre-wrap',
-          lineHeight: 1.6,
-          overflowWrap: 'break-word',
-          wordBreak: 'break-word',
-        }}>
-          {content}
+  const markdownComponents = {
+    h1: ({ children }) => <h3 className="chat-md-heading chat-md-h1">{children}</h3>,
+    h2: ({ children }) => <h4 className="chat-md-heading chat-md-h2">{children}</h4>,
+    h3: ({ children }) => <h5 className="chat-md-heading chat-md-h3">{children}</h5>,
+    h4: ({ children }) => <h6 className="chat-md-heading chat-md-h4">{children}</h6>,
+    p: ({ children }) => <p className="chat-md-p">{children}</p>,
+    strong: ({ children }) => <strong className="chat-md-strong">{children}</strong>,
+    em: ({ children }) => <em className="chat-md-em">{children}</em>,
+    blockquote: ({ children }) => (
+      <div className="chat-md-callout">
+        <div className="chat-md-callout-icon">
+          <ShieldIcon size={14} />
         </div>
-      );
-    }
-
-    return (
-      <div style={{ lineHeight: 1.6, overflowWrap: 'break-word', wordBreak: 'break-word' }}>
-        {parts.map((part, idx) => {
-          if (part.type === 'text') {
-            return (
-              <span key={idx} style={{ whiteSpace: 'pre-wrap' }}>
-                {part.text}
-              </span>
-            );
-          }
+        <div className="chat-md-callout-content">{children}</div>
+      </div>
+    ),
+    table: ({ children }) => (
+      <div className="chat-md-table-wrapper">
+        <table className="chat-md-table">{children}</table>
+      </div>
+    ),
+    thead: ({ children }) => <thead className="chat-md-thead">{children}</thead>,
+    tbody: ({ children }) => <tbody className="chat-md-tbody">{children}</tbody>,
+    tr: ({ children }) => <tr className="chat-md-tr">{children}</tr>,
+    th: ({ children }) => <th className="chat-md-th">{children}</th>,
+    td: ({ children }) => <td className="chat-md-td">{children}</td>,
+    ul: ({ children }) => <ul className="chat-md-ul">{children}</ul>,
+    ol: ({ children }) => <ol className="chat-md-ol">{children}</ol>,
+    li: ({ children }) => <li className="chat-md-li">{children}</li>,
+    hr: () => <hr className="chat-md-hr" />,
+    code: ({ inline, className, children, ...props }) => (
+      <code className="chat-md-code" {...props}>
+        {children}
+      </code>
+    ),
+    a: ({ href, children, ...props }) => {
+      if (href === '#statutory-citation') {
+        const text = String(children);
+        if (text.startsWith('cite:')) {
+          const parts = text.slice(5).split('|');
+          const source = parts[0] || 'Statutory Source';
+          const page = parts[1];
           return (
-            <span
-              key={idx}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                background: 'var(--color-primary-surface)',
-                border: '1px solid var(--color-neutral-border)',
-                color: 'var(--color-primary)',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                padding: '2px 7px',
-                borderRadius: 'var(--radius-xs)',
-                margin: '2px 4px',
-                verticalAlign: 'middle',
-              }}
-            >
+            <span className="statutory-citation-badge" title="Statutory Ordinance Reference">
               <CitationIcon size={12} />
-              <span>
-                {part.source}
-                {part.page ? `, p. ${part.page}` : ''}
-              </span>
+              <span>{source}{page ? `, p. ${page}` : ''}</span>
             </span>
           );
-        })}
-      </div>
-    );
+        }
+      }
+      return (
+        <a href={href} target="_blank" rel="noopener noreferrer" className="chat-md-link" {...props}>
+          {children}
+        </a>
+      );
+    },
   };
 
   return (
@@ -363,34 +379,61 @@ All statutory answers cite official publications (Income Tax Ordinance 2001 and 
                 <span>{isUser ? 'Taxpayer Query' : 'TaxSense PK Advisor'}</span>
               </div>
 
-              <div style={{
-                maxWidth: '88%',
-                padding: '12px 16px',
-                borderRadius: 'var(--radius-sm)',
-                background: isUser ? 'var(--color-primary)' : (msg.isError ? '#FDF2F2' : 'var(--color-neutral-surface)'),
-                color: isUser ? 'var(--color-neutral-surface)' : (msg.isError ? 'var(--color-semantic-surcharge)' : 'var(--color-neutral-text)'),
-                border: isUser ? '1px solid var(--color-primary-deep)' : (msg.isError ? '1px solid #F8B4B4' : '1px solid var(--color-neutral-border)'),
-                boxShadow: isUser ? 'none' : 'var(--shadow-subtle)',
-                fontSize: '0.875rem',
-                overflowWrap: 'break-word',
-                wordBreak: 'break-word',
-              }}>
-                {renderMessageContent(msg.content)}
+              {isUser ? (
+                <div className="chat-bubble-user">
+                  {msg.content}
+                </div>
+              ) : (
+                <div className={msg.isError ? 'chat-bubble-assistant chat-bubble-error' : 'chat-bubble-assistant'}>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={markdownComponents}
+                  >
+                    {preprocessStatutoryMarkdown(msg.content)}
+                  </ReactMarkdown>
 
-                {msg.isError && msg.failedQuery && (
-                  <div style={{ marginTop: '10px' }}>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => sendMessage(msg.failedQuery)}
-                      style={{ padding: '4px 10px', fontSize: '0.75rem', gap: '6px' }}
-                    >
-                      <RefreshIcon size={12} />
-                      <span>Retry Query</span>
-                    </button>
-                  </div>
-                )}
-              </div>
+                  {!msg.isError && (
+                    <div className="chat-assistant-footer">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <ShieldIcon size={12} />
+                        <span>FBR Statutory Grounded</span>
+                      </div>
+                      <button
+                        type="button"
+                        className={`chat-copy-btn ${copiedIndex === index ? 'copied' : ''}`}
+                        onClick={() => handleCopyMessage(msg.content, index)}
+                        title="Copy advisory brief to clipboard"
+                      >
+                        {copiedIndex === index ? (
+                          <>
+                            <CheckIcon size={12} />
+                            <span>Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <CopyIcon size={12} />
+                            <span>Copy Brief</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  {msg.isError && msg.failedQuery && (
+                    <div style={{ marginTop: '10px' }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => sendMessage(msg.failedQuery)}
+                        style={{ padding: '4px 10px', fontSize: '0.75rem', gap: '6px' }}
+                      >
+                        <RefreshIcon size={12} />
+                        <span>Retry Query</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}

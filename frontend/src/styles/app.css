@@ -278,6 +278,304 @@ body {
   max-height: clamp(480px, calc(100vh - 280px), 720px);
 }
 
+/* ==========================================================================
+   Chat Assistant — Rich Markdown & Statutory Ledger Presentation
+   ========================================================================== */
+
+.chat-bubble-assistant {
+  width: 100%;
+  max-width: 94%;
+  background: var(--color-neutral-surface);
+  color: var(--color-neutral-text);
+  border: 1px solid var(--color-neutral-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 1px 3px rgba(14, 56, 43, 0.05), 0 2px 6px rgba(0, 0, 0, 0.02);
+  padding: 16px 20px;
+  font-size: 0.875rem;
+  line-height: 1.62;
+  position: relative;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.chat-bubble-assistant:hover {
+  border-color: #B5C4BC;
+  box-shadow: 0 2px 6px rgba(14, 56, 43, 0.07), 0 3px 10px rgba(0, 0, 0, 0.03);
+}
+
+.chat-bubble-user {
+  max-width: 82%;
+  background: var(--color-primary);
+  color: var(--color-neutral-surface);
+  border: 1px solid var(--color-primary-deep);
+  border-radius: var(--radius-sm);
+  padding: 12px 18px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  box-shadow: 0 1px 3px rgba(7, 32, 24, 0.18);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Assistant Message Meta/Action Footer */
+.chat-assistant-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-neutral-border-subtle);
+  font-size: 0.6875rem;
+  color: var(--color-neutral-muted);
+}
+
+.chat-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid var(--color-neutral-border);
+  border-radius: var(--radius-xs);
+  padding: 3px 8px;
+  color: var(--color-neutral-muted);
+  font-size: 0.6875rem;
+  font-family: var(--font-body);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.chat-copy-btn:hover {
+  background: var(--color-primary-surface);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.chat-copy-btn.copied {
+  background: #E8F5E9;
+  color: #1A643B;
+  border-color: #A3D9B8;
+}
+
+/* Headings */
+.chat-md-heading {
+  font-family: var(--font-display);
+  color: var(--color-primary-deep);
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 14px 0 8px 0;
+  letter-spacing: -0.01em;
+}
+
+.chat-md-heading:first-child {
+  margin-top: 0;
+}
+
+.chat-md-h1 {
+  font-size: 1.15rem;
+  border-bottom: 1px solid var(--color-neutral-border-subtle);
+  padding-bottom: 6px;
+  margin-bottom: 12px;
+}
+
+.chat-md-h2 {
+  font-size: 1.05rem;
+  color: var(--color-primary);
+  border-left: 3px solid var(--color-primary);
+  padding-left: 8px;
+}
+
+.chat-md-h3 {
+  font-size: 0.975rem;
+  color: var(--color-primary-deep);
+}
+
+.chat-md-h4 {
+  font-size: 0.875rem;
+  font-family: var(--font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-neutral-muted);
+}
+
+/* Paragraphs & Text */
+.chat-md-p {
+  margin: 0 0 10px 0;
+  line-height: 1.62;
+  color: var(--color-neutral-text);
+}
+
+.chat-md-p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-md-strong {
+  font-weight: 600;
+  color: var(--color-primary-deep);
+}
+
+.chat-md-em {
+  font-style: italic;
+  color: var(--color-neutral-muted);
+}
+
+/* Callout / Direct Verdict Box */
+.chat-md-callout {
+  display: flex;
+  gap: 12px;
+  background: var(--color-primary-surface);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-xs);
+  padding: 12px 14px;
+  margin: 12px 0 14px 0;
+  color: var(--color-primary-deep);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  box-shadow: 0 1px 2px rgba(14, 56, 43, 0.04);
+}
+
+.chat-md-callout-icon {
+  flex-shrink: 0;
+  color: var(--color-primary);
+  margin-top: 2px;
+}
+
+.chat-md-callout-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-md-callout-content p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+/* Tables — The Statutory Ledger Table */
+.chat-md-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  margin: 14px 0;
+  border: 1px solid var(--color-neutral-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-neutral-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  -webkit-overflow-scrolling: touch;
+}
+
+.chat-md-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  text-align: left;
+}
+
+.chat-md-thead {
+  background: #F2F6F3;
+  border-bottom: 2px solid var(--color-neutral-border);
+}
+
+.chat-md-th {
+  padding: 9px 12px;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+.chat-md-tr {
+  border-bottom: 1px solid var(--color-neutral-border-subtle);
+  transition: background-color var(--transition-fast);
+}
+
+.chat-md-tr:nth-child(even) {
+  background-color: #FBFDFB;
+}
+
+.chat-md-tr:last-child {
+  border-bottom: none;
+}
+
+.chat-md-tr:hover {
+  background-color: #F0F5F2;
+}
+
+.chat-md-td {
+  padding: 10px 12px;
+  color: var(--color-neutral-text);
+  line-height: 1.5;
+  vertical-align: top;
+}
+
+/* Lists */
+.chat-md-ul, .chat-md-ol {
+  margin: 8px 0 12px 0;
+  padding-left: 20px;
+}
+
+.chat-md-li {
+  margin-bottom: 6px;
+  line-height: 1.55;
+  color: var(--color-neutral-text);
+}
+
+.chat-md-li::marker {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.chat-md-li:last-child {
+  margin-bottom: 0;
+}
+
+/* Horizontal Rule */
+.chat-md-hr {
+  border: none;
+  border-top: 1px solid var(--color-neutral-border-subtle);
+  margin: 16px 0;
+}
+
+/* Inline Code / Badges */
+.chat-md-code {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  background: var(--color-neutral-ground);
+  color: var(--color-primary-deep);
+  border: 1px solid var(--color-neutral-border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 2px 6px;
+  font-weight: 500;
+}
+
+/* Statutory Citations Badge */
+.statutory-citation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--color-primary-surface);
+  border: 1px solid var(--color-neutral-border);
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  margin: 2px 4px 2px 0;
+  vertical-align: middle;
+  text-decoration: none;
+}
+
+.chat-md-link {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.chat-md-link:hover {
+  color: var(--color-accent);
+}
+
 /* Mobile / Tablet Tab Switcher */
 .mobile-view-tabs {
   display: none;
